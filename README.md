@@ -4,7 +4,7 @@ Monitoring tools and forecasting models for the UK and US economies.
 
 ## What's here
 
-- **Real-time data store.** Official statistics are pulled from source APIs (starting with the ONS) into a DuckDB database. Every release is kept as a separate vintage, so models can be tested on the data that was actually available at the time, not today's revised figures.
+- **Real-time data store.** Official statistics are pulled from the ONS and the Bank of England into a DuckDB database. Every release is kept as a separate vintage, so models can be tested on the data that was actually available at the time, not today's revised figures.
 - **A daily monitoring run** that fetches every tracked series, stores only new or revised values, logs each fetch and prints what changed.
 - **Power BI dashboards** built on Parquet exports of the database.
 - **Forecasting models** (in progress), with every forecast stored so its accuracy can be tracked against outturns.
@@ -12,7 +12,7 @@ Monitoring tools and forecasting models for the UK and US economies.
 ## How the pipeline works
 
 ```
-series.csv → registry → fetchers (ONS, ...) → vintage-aware store → SQL views → Parquet → Power BI
+series.csv → registry → fetchers (ONS, BoE) → vintage-aware store → SQL views → Parquet → Power BI
                                    └→ fetch log            └→ "what changed" report
 ```
 

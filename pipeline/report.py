@@ -1,13 +1,16 @@
 """The "what changed" summary printed at the end of each run."""
 
 
-def _fmt(value, units):
+def _fmt(value, units, frequency=None):
     if value is None:
         return "-"
     if units == "%":
-        return f"{value:.1f}%"
-    if units in ("£m", "thousands"):
+        # Daily market rates move in basis points (0.01pp), so show 2 decimals.
+        return f"{value:.2f}%" if frequency == "D" else f"{value:.1f}%"
+    if units in ("£m", "thousands", "number"):
         return f"{value:,.0f}"
+    if units.startswith(("USD per", "EUR per")):
+        return f"{value:.4f}"
     return f"{value:.1f}"
 
 
@@ -16,6 +19,8 @@ def _fmt_period(period, frequency):
         return f"{period.year} Q{(period.month - 1) // 3 + 1}"
     if frequency == "A":
         return str(period.year)
+    if frequency == "D":
+        return f"{period:%d %b %Y}"
     return f"{period:%b %Y}"
 
 
@@ -41,9 +46,11 @@ def print_report(con, results):
         """, [r["series_id"]]).fetchall()
         period, value = latest_two[0]
         previous = latest_two[1][1] if len(latest_two) > 1 else None
-        print(f"{name}: {_fmt(value, units)} in {_fmt_period(period, frequency)} "
-              f"(previous period {_fmt(previous, units)}) "
-              f"[{r['rows_written']} rows written, next release {next_release or 'unknown'}]")
+        when = "on" if frequency == "D" else "in"
+        extra = f", next release {next_release}" if next_release else ""
+        print(f"{name}: {_fmt(value, units, frequency)} {when} {_fmt_period(period, frequency)} "
+              f"(previous {_fmt(previous, units, frequency)}) "
+              f"[{r['rows_written']} rows written{extra}]")
 
     print(f"\nUnchanged: {len(unchanged)} series.")
     if errors:

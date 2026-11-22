@@ -11,7 +11,7 @@ REGISTRY_PATH = ROOT / "series.csv"
 
 COLUMNS = ["series_id", "source", "source_code", "dataset", "name",
            "section", "area", "frequency", "units", "measure"]
-FREQUENCIES = {"M", "Q", "A"}
+FREQUENCIES = {"D", "M", "Q", "A"}
 MEASURES = {"rate", "level"}
 
 

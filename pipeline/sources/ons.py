@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 import requests
 
-from pipeline.sources.base import FetchResult
+from pipeline.sources.base import USER_AGENT, FetchResult
 
 API = "https://api.beta.ons.gov.uk/v1"
 LONDON = ZoneInfo("Europe/London")
@@ -19,7 +19,7 @@ MONTHS = {"JAN": 1, "FEB": 2, "MAR": 3, "APR": 4, "MAY": 5, "JUN": 6,
 FREQ_KEYS = {"M": "months", "Q": "quarters", "A": "years"}
 
 session = requests.Session()
-session.headers["User-Agent"] = "forecasting-and-modelling/0.1 (personal research)"
+session.headers["User-Agent"] = USER_AGENT
 
 
 def _get(path, params):
