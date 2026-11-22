@@ -1,0 +1,20 @@
+# Python environment and caches
+.venv/
+*.venv/
+__pycache__/
+
+# PyCharm settings (machine specific)
+.idea/
+
+# Data is rebuilt from the ingest scripts, so it stays out of git
+data/
+exports/
+
+# Secrets such as API keys live here, never in code
+.env
+
+# Personal exploration file
+scratch.py
+
+# Personal context for Claude Code
+CLAUDE.local.md
