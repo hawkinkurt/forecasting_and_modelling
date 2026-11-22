@@ -1,0 +1,18 @@
+series_id,source,source_code,dataset,name,section,area,frequency,units,measure,multiplier
+gdp_qoq,ONS,IHYQ,pn2,"GDP growth, quarter on quarter",Activity,UK,Q,%,rate,
+gdp_real,ONS,ABMI,pn2,"Real GDP, chained volume measure",Activity,UK,Q,£m,level,
+gdp_monthly,ONS,ECY2,mgdp,Monthly GDP (GVA) index,Activity,UK,M,index,level,
+services_output,ONS,S2KU,ios1,Index of Services,Activity,UK,M,index,level,
+unemployment_rate,ONS,MGSX,lms,"Unemployment rate, 16+ (3 months to)",Labour market,UK,M,%,rate,
+employment_rate,ONS,LF24,lms,"Employment rate, 16-64 (3 months to)",Labour market,UK,M,%,rate,
+vacancies,ONS,AP2Y,lms,Vacancies (3 months to),Labour market,UK,M,thousands,level,
+regular_pay_yoy,ONS,KAI9,lms,"Regular pay growth, whole economy (3m avg, y/y)",Labour market,UK,M,%,rate,
+private_regular_pay_yoy,ONS,KAJ4,lms,"Regular pay growth, private sector (3m avg, y/y)",Labour market,UK,M,%,rate,
+cpi_yoy,ONS,D7G7,mm23,"CPI inflation, y/y",Prices,UK,M,%,rate,
+core_cpi_yoy,ONS,DKO8,mm23,"Core CPI inflation (ex energy, food, alcohol, tobacco), y/y",Prices,UK,M,%,rate,
+services_cpi_yoy,ONS,D7NN,mm23,"Services CPI inflation, y/y",Prices,UK,M,%,rate,
+goods_cpi_yoy,ONS,D7NM,mm23,"Goods CPI inflation, y/y",Prices,UK,M,%,rate,
+cpih_yoy,ONS,L55O,mm23,"CPIH inflation, y/y",Prices,UK,M,%,rate,
+retail_sales_volume,ONS,J5EK,drsi,"Retail sales volume, incl fuel",Households,UK,M,index,level,
+psnb,ONS,J5II,pusf,"Public sector net borrowing (ex public sector banks), not seasonally adjusted",Public finances,UK,M,£m,level,-1
+trade_balance,ONS,IKBJ,mret,"Trade balance, goods and services",External,UK,M,£m,level,

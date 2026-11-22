@@ -11,6 +11,11 @@ CREATE TABLE IF NOT EXISTS series (
     last_fetched TIMESTAMP
 );
 
+-- Columns added after the table was first created. IF NOT EXISTS makes these
+-- safe to re-run, so this file works on both new and existing databases.
+ALTER TABLE series ADD COLUMN IF NOT EXISTS section VARCHAR;
+ALTER TABLE series ADD COLUMN IF NOT EXISTS measure VARCHAR;  -- 'rate' or 'level'
+
 CREATE TABLE IF NOT EXISTS observations (
     series_id VARCHAR NOT NULL,
     period_date DATE NOT NULL,

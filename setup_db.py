@@ -1,17 +1,14 @@
-"""Create (or update) the database tables and views. Safe to re-run."""
-from pathlib import Path
+"""Create (or update) the database tables and views. Safe to re-run.
 
-import duckdb
-
-ROOT = Path(__file__).parent
-DB_PATH = ROOT / "data" / "uk_monitor.duckdb"
+run.py does this automatically, so this is only needed on its own after
+editing the SQL files.
+"""
+from pipeline.db import connect, ensure_schema
 
 
 def main():
-    DB_PATH.parent.mkdir(exist_ok=True)
-    con = duckdb.connect(str(DB_PATH))
-    con.execute((ROOT / "sql" / "schema.sql").read_text())
-    con.execute((ROOT / "sql" / "views.sql").read_text())
+    con = connect()
+    ensure_schema(con)
     print(con.execute("SELECT table_name, table_type FROM information_schema.tables ORDER BY 1").fetchall())
     con.close()
 

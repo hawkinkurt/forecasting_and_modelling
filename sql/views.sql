@@ -24,6 +24,8 @@ CREATE OR REPLACE VIEW latest_observations_labelled AS
 SELECT
     o.series_id,
     COALESCE(s.name, o.series_id) AS series_name,
+    s.section,
+    s.measure,
     s.source,
     s.area,
     s.frequency,
