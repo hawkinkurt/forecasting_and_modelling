@@ -68,7 +68,7 @@ def q(name):
 # that should never be summed (shown row by row instead).
 TABLES = [
     dict(name="Series", file="series",
-         columns=["series_id", "name", "section", "frequency", "units", "measure",
+         columns=["series_id", "name", "short_name", "section", "frequency", "units", "measure",
                   "source", "next_release", "last_fetched"]),
     dict(name="Observations", file="latest_observations",
          columns=["series_id", "period_date", "value", "vintage_date"], filter_dates=True, hide=True),
@@ -202,22 +202,7 @@ DATE_TABLE = f"""table Date
 # Semantic model: measures
 # ---------------------------------------------------------------------------
 
-# Short display names for charts and cards (series.csv names are too long for legends)
-SHORT_NAMES = {
-    "gdp_qoq": "GDP growth q/q (%)", "gdp_real": "Real GDP (£m)",
-    "gdp_monthly": "Monthly GDP index", "services_output": "Services output index",
-    "unemployment_rate": "Unemployment rate (%)", "employment_rate": "Employment rate (%)",
-    "vacancies": "Vacancies (000s)", "regular_pay_yoy": "Regular pay growth (%)",
-    "private_regular_pay_yoy": "Private regular pay growth (%)",
-    "cpi_yoy": "CPI inflation (%)", "core_cpi_yoy": "Core CPI inflation (%)",
-    "services_cpi_yoy": "Services CPI inflation (%)", "goods_cpi_yoy": "Goods CPI inflation (%)",
-    "cpih_yoy": "CPIH inflation (%)", "retail_sales_volume": "Retail sales volume index",
-    "psnb": "Public sector net borrowing (£m)", "trade_balance": "Trade balance (£m)",
-    "bank_rate": "Bank Rate (%)", "sonia": "SONIA (%)",
-    "gilt_5y": "5-year gilt yield (%)", "gilt_10y": "10-year gilt yield (%)", "gilt_20y": "20-year gilt yield (%)",
-    "mortgage_rate_2y": "2-year fixed mortgage rate (%)", "mortgage_approvals": "Mortgage approvals",
-    "sterling_eri": "Sterling ERI", "gbp_usd": "GBP/USD", "gbp_eur": "GBP/EUR",
-}
+# Chart and card names come from the short_name column of series.csv
 
 FORMAT_BY_UNITS = {"%": "0.0", "£m": "#,0", "thousands": "#,0", "number": "#,0", "index": "0.0"}
 
@@ -257,9 +242,9 @@ RETURN
         sid = row["series_id"]
         fmt = "0.00" if row["frequency"] == "D" and row["units"] == "%" else \
               "0.0000" if row["units"].endswith("per GBP") else FORMAT_BY_UNITS.get(row["units"], "0.0")
-        out.append(measure_tmdl(SHORT_NAMES[sid], f'CALCULATE ( [Series Value], Series[series_id] = "{sid}" )',
+        out.append(measure_tmdl(row["short_name"], f'CALCULATE ( [Series Value], Series[series_id] = "{sid}" )',
                                 fmt=fmt, folder=row["section"]))
-        out.append(measure_tmdl(f"Latest: {SHORT_NAMES[sid]}",
+        out.append(measure_tmdl(f"Latest: {row['short_name']}",
                                 f'CALCULATE ( [Latest Value], Series[series_id] = "{sid}" )',
                                 fmt=fmt, folder=f"Latest values\\{row['section']}"))
     out.append(measure_tmdl("Inflation target (%)", "IF ( NOT ISBLANK ( [CPI inflation (%)] ), 2 )",

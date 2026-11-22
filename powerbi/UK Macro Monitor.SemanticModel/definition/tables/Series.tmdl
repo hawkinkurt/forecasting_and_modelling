@@ -17,6 +17,14 @@ table Series
 
 		annotation SummarizationSetBy = Automatic
 
+	column short_name
+		dataType: string
+		lineageTag: 80b3d467-325b-5be7-945c-080cabd85a15
+		summarizeBy: none
+		sourceColumn: short_name
+
+		annotation SummarizationSetBy = Automatic
+
 	column section
 		dataType: string
 		lineageTag: bd1dac4e-5de2-5c78-9a2f-8031901ed4c3
@@ -84,7 +92,7 @@ table Series
 		source =
 				let
 				    Source = Parquet.Document(File.Contents(ExportFolder & "series.parquet"), [Compression=null, LegacyColumnNameEncoding=false, MaxDepth=null]),
-				    Selected = Table.SelectColumns(Source, {"series_id", "name", "section", "frequency", "units", "measure", "source", "next_release", "last_fetched"})
+				    Selected = Table.SelectColumns(Source, {"series_id", "name", "short_name", "section", "frequency", "units", "measure", "source", "next_release", "last_fetched"})
 				in
 				    Selected
 

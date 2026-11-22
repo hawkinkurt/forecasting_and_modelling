@@ -9,7 +9,7 @@ from pipeline.db import ROOT
 
 REGISTRY_PATH = ROOT / "series.csv"
 
-COLUMNS = ["series_id", "source", "source_code", "dataset", "name",
+COLUMNS = ["series_id", "source", "source_code", "dataset", "name", "short_name",
            "section", "area", "frequency", "units", "measure"]
 FREQUENCIES = {"D", "M", "Q", "A"}
 # rate: a percentage (changes in percentage points)
@@ -60,14 +60,15 @@ def sync_registry(con, rows):
     """
     for r in rows:
         con.execute("""
-            INSERT INTO series (series_id, source, source_code, dataset, name,
+            INSERT INTO series (series_id, source, source_code, dataset, name, short_name,
                                 section, area, frequency, units, measure)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (series_id) DO UPDATE SET
                 source = excluded.source,
                 source_code = excluded.source_code,
                 dataset = excluded.dataset,
                 name = excluded.name,
+                short_name = excluded.short_name,
                 section = excluded.section,
                 area = excluded.area,
                 frequency = excluded.frequency,

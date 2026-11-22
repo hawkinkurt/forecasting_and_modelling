@@ -1,12 +1,16 @@
 """Run the whole monitor: sync the registry, fetch every series, store new or
-revised data, log each fetch, export for Power BI and print what changed.
+revised data, log each fetch, export for Power BI, print what changed and
+email the "what changed" report.
 
-Usage:  .\\.venv\\Scripts\\python.exe run.py
+Usage:  .\\.venv\\Scripts\\python.exe run.py             (fetch, export and email)
+        .\\.venv\\Scripts\\python.exe run.py --no-email  (skip sending; preview still saved)
 """
+import argparse
 from datetime import datetime
 
 import export
 from pipeline.db import connect, ensure_schema
+from pipeline.email_report import build_report, save_preview, send_report
 from pipeline.registry import load_registry, sync_registry
 from pipeline.report import print_report
 from pipeline.sources import FETCHERS
@@ -45,12 +49,17 @@ def fetch_one(con, series):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Run the UK macro monitor")
+    parser.add_argument("--no-email", action="store_true", help="do not send the email report")
+    args = parser.parse_args()
+
     registry = load_registry()
 
     con = connect()
     ensure_schema(con)
     sync_registry(con, registry)
 
+    run_started = datetime.now()
     results = []
     for series in registry:
         r = fetch_one(con, series)
@@ -58,10 +67,17 @@ def main():
         results.append(r)
 
     print_report(con, results)
+    report = build_report(con, results, run_started)
     con.close()  # close before exporting, which opens its own read-only connection
 
     print()
     export.main()
+
+    print(f"\nEmail preview saved to {save_preview(report)}")
+    if args.no_email:
+        print("Email not sent (--no-email)")
+    else:
+        print(send_report(report))
 
 
 if __name__ == "__main__":

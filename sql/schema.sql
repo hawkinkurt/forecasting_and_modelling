@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS series (
 -- safe to re-run, so this file works on both new and existing databases.
 ALTER TABLE series ADD COLUMN IF NOT EXISTS section VARCHAR;
 ALTER TABLE series ADD COLUMN IF NOT EXISTS measure VARCHAR;  -- 'rate', 'level' or 'balance'
+ALTER TABLE series ADD COLUMN IF NOT EXISTS short_name VARCHAR;  -- for charts, legends and the email
 
 CREATE TABLE IF NOT EXISTS observations (
     series_id VARCHAR NOT NULL,
