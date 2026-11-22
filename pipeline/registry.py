@@ -12,7 +12,10 @@ REGISTRY_PATH = ROOT / "series.csv"
 COLUMNS = ["series_id", "source", "source_code", "dataset", "name",
            "section", "area", "frequency", "units", "measure"]
 FREQUENCIES = {"D", "M", "Q", "A"}
-MEASURES = {"rate", "level"}
+# rate: a percentage (changes in percentage points)
+# level: an index or stock that is always positive (changes in %)
+# balance: a flow that can be negative, e.g. borrowing or a trade balance (changes in its own units)
+MEASURES = {"rate", "level", "balance"}
 
 
 def load_registry(path=REGISTRY_PATH):

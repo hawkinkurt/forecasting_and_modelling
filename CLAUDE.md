@@ -20,8 +20,14 @@ Monitoring tools, forecasting models and chart packs on the UK and US economies 
 ## Current state of the code
 
 - `sql/schema.sql`: tables `series` (metadata), `observations` (vintage-aware: one row per series, period and vintage date), `fetch_log`, `forecasts` (keeps every forecast with date made and model, for later accuracy tracking).
-- `sql/views.sql`: `latest_observations` (most recent vintage per period) and `latest_observations_labelled` (joined to `series`, long format for Power BI).
-- `series.csv`: the registry, one row per tracked series (source, source code, dataset, name, section, frequency M/Q/A, units, measure rate/level, optional multiplier e.g. -1 to flip a sign convention). Source of truth, synced into the `series` table each run.
+- `sql/views.sql`: all derived measures, each with a comment explaining the economics and the SQL technique.
+  - `latest_observations`, `latest_observations_labelled`: most recent vintage per period.
+  - `analysis_series`: M and Q series as published, plus daily series as monthly averages (`is_complete` false for the current month).
+  - `changes`: period, y/y and 3m-on-3m annualised changes. % for `level`, pp for `rate`, units for `balance`. Uses RANGE windows with calendar intervals so gaps give NULL rather than wrong comparisons.
+  - `real_pay` (pay growth deflated by 3m avg CPIH), `yield_curve` (daily spreads in bp), `real_policy_rate` (Bank Rate minus CPI), `psnb_fiscal_year` (fiscal-year-to-date borrowing vs last year).
+  - `revisions` (first vs latest estimate, `is_backfill` flags the initial load), `latest_snapshot` (one row per series for dashboard cards), `data_health` (ok / stale / overdue / error per series).
+- Validated: derived GDP q/q matches the ONS published series exactly on all quarters. Derived retail sales y/y matches the published series to within 0.1pp (0.2pp once in the 2000s), the gap being rounding of the 1dp published index.
+- `series.csv`: the registry, one row per tracked series (source, source code, dataset, name, section, frequency D/M/Q/A, units, measure rate/level/balance, optional multiplier e.g. -1 to flip a sign convention). Source of truth, synced into the `series` table each run.
 - `run.py`: the whole pipeline. Sync registry, fetch each series (one transaction per series, errors logged and skipped), store, update `last_fetched`/`next_release`, print the "what changed" report, export Parquet. Run manually for now.
 - `pipeline/`: `db.py` (connection, `ensure_schema`), `registry.py` (load/validate/upsert), `store.py` (vintage logic), `report.py`, `sources/` (one fetcher per source returning `FetchResult(rows, vintage_date, next_release)`, registered in `sources/__init__.py`).
 - `pipeline/sources/ons.py`: ONS beta API. Resolves the full URI from CDID + dataset via the search endpoint each run. Release timestamps are converted to London time (BST midnight arrives as 23:00 UTC the day before).
@@ -37,7 +43,7 @@ Known data notes: LFS series are labelled by the last month of the rolling 3 mon
 
 ## Roadmap (rough, revise as work progresses)
 
-1. **UK and US macro monitor.** Pipeline, core ONS series and Bank of England series done. Next: SQL views for derived measures, Power BI dashboard, then FRED for the US.
+1. **UK and US macro monitor.** Pipeline, core ONS and Bank of England series, and derived-measure views done. Next: Power BI dashboard, then FRED for the US.
 2. **Release charts.** Chart packs for major UK and US data releases.
 3. **Nowcasting model.** UK GDP nowcast with a dynamic factor model or MIDAS in Python, tracked against outturns using the `forecasts` table and real-time vintages.
 4. **Rates and fiscal.** Gilt and Treasury yield curves, bond maths, debt dynamics and fiscal rule scenarios.

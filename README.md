@@ -20,7 +20,7 @@ series.csv → registry → fetchers (ONS, BoE) → vintage-aware store → SQL 
 2. **Fetchers.** One module per data source, each returning the same shape: periods, values and the publication (vintage) date.
 3. **Store.** Only new periods and revised values are written. A revision becomes a new row with a later vintage, so history is never overwritten.
 4. **Fetch log.** Every series on every run is logged as `ok`, `no change` or `error`. One failure does not stop the run.
-5. **Views and exports.** SQL views derive the latest estimates, and `export.py` writes them to Parquet for Power BI.
+5. **Views and exports.** SQL views derive everything else from the stored data: growth rates (period, y/y, 3-month-on-3-month annualised), real pay, yield curve spreads, the real policy rate, fiscal-year-to-date borrowing, data revisions and a data health check. `export.py` writes them to Parquet for Power BI. Derived growth rates are checked against the ONS's own published figures.
 
 ## Layout
 
@@ -30,7 +30,7 @@ series.csv → registry → fetchers (ONS, BoE) → vintage-aware store → SQL 
 | `run.py` | Runs the whole pipeline |
 | `pipeline/` | Registry, storage, report and source fetchers |
 | `sql/schema.sql` | Tables: series registry, vintaged observations, fetch log, forecasts |
-| `sql/views.sql` | Views such as the latest estimate for each period |
+| `sql/views.sql` | Derived measures: growth rates, real pay, yield curve, fiscal year borrowing, revisions, data health |
 | `export.py` | Writes Parquet files to `exports/` for Power BI |
 | `setup_db.py` | Creates or updates the database on its own |
 

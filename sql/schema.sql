@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS series (
 -- Columns added after the table was first created. IF NOT EXISTS makes these
 -- safe to re-run, so this file works on both new and existing databases.
 ALTER TABLE series ADD COLUMN IF NOT EXISTS section VARCHAR;
-ALTER TABLE series ADD COLUMN IF NOT EXISTS measure VARCHAR;  -- 'rate' or 'level'
+ALTER TABLE series ADD COLUMN IF NOT EXISTS measure VARCHAR;  -- 'rate', 'level' or 'balance'
 
 CREATE TABLE IF NOT EXISTS observations (
     series_id VARCHAR NOT NULL,

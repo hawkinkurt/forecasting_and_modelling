@@ -14,8 +14,8 @@ services_cpi_yoy,ONS,D7NN,mm23,"Services CPI inflation, y/y",Prices,UK,M,%,rate,
 goods_cpi_yoy,ONS,D7NM,mm23,"Goods CPI inflation, y/y",Prices,UK,M,%,rate,
 cpih_yoy,ONS,L55O,mm23,"CPIH inflation, y/y",Prices,UK,M,%,rate,
 retail_sales_volume,ONS,J5EK,drsi,"Retail sales volume, incl fuel",Households,UK,M,index,level,
-psnb,ONS,J5II,pusf,"Public sector net borrowing (ex public sector banks), not seasonally adjusted",Public finances,UK,M,£m,level,-1
-trade_balance,ONS,IKBJ,mret,"Trade balance, goods and services",External,UK,M,£m,level,
+psnb,ONS,J5II,pusf,"Public sector net borrowing (ex public sector banks), not seasonally adjusted",Public finances,UK,M,£m,balance,-1
+trade_balance,ONS,IKBJ,mret,"Trade balance, goods and services",External,UK,M,£m,balance,
 bank_rate,BoE,IUDBEDR,IADB,Bank Rate,Monetary policy and rates,UK,D,%,rate,
 sonia,BoE,IUDSOIA,IADB,SONIA overnight rate,Monetary policy and rates,UK,D,%,rate,
 gilt_5y,BoE,IUDSNPY,IADB,"Gilt yield, 5-year nominal par",Monetary policy and rates,UK,D,%,rate,
