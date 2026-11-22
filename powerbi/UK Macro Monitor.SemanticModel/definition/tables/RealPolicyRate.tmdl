@@ -1,0 +1,56 @@
+table RealPolicyRate
+	lineageTag: f2f87337-592b-52ee-b9f5-8c1b403a7c8c
+
+	/// Monthly average Bank Rate minus CPI inflation (ex-post real policy rate).
+	measure 'Real Bank Rate (%)' = AVERAGE ( RealPolicyRate[real_bank_rate] )
+		formatString: 0.00
+		displayFolder: Rates
+		lineageTag: e0844f05-cd81-52b8-b532-98dc127d73ff
+
+	column period_date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: c65a993e-9d93-5632-ac42-d033f524f6a0
+		summarizeBy: none
+		sourceColumn: period_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column bank_rate_avg
+		dataType: double
+		lineageTag: d80f0979-7ad3-5261-9643-f3ac9c2e0ec0
+		summarizeBy: sum
+		sourceColumn: bank_rate_avg
+
+		annotation SummarizationSetBy = Automatic
+
+	column cpi_inflation
+		dataType: double
+		lineageTag: f9f73a94-d164-52fe-9e72-17884bed1735
+		summarizeBy: sum
+		sourceColumn: cpi_inflation
+
+		annotation SummarizationSetBy = Automatic
+
+	column real_bank_rate
+		dataType: double
+		lineageTag: 98e3f421-8018-5b66-8b90-eb84e391ec48
+		summarizeBy: sum
+		sourceColumn: real_bank_rate
+
+		annotation SummarizationSetBy = Automatic
+
+	partition RealPolicyRate = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "real_policy_rate.parquet"), [Compression=null, LegacyColumnNameEncoding=false, MaxDepth=null]),
+				    Selected = Table.SelectColumns(Source, {"period_date", "bank_rate_avg", "cpi_inflation", "real_bank_rate"}),
+				    Filtered = Table.SelectRows(Selected, each [period_date] >= DashboardStart)
+				in
+				    Filtered
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,124 @@
+table DataHealth
+	lineageTag: d8fa1045-1f0e-5bd2-ba48-dd574172014c
+
+	column section
+		dataType: string
+		lineageTag: cf153dda-f7c8-5cf6-ad88-d43074d2baec
+		summarizeBy: none
+		sourceColumn: section
+
+		annotation SummarizationSetBy = Automatic
+
+	column series_id
+		dataType: string
+		lineageTag: 5be510cd-45e4-5dd0-a6bf-41bcca8158d3
+		summarizeBy: none
+		sourceColumn: series_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column name
+		dataType: string
+		lineageTag: 2c4b3121-8b4d-584f-8bad-50998fb900ed
+		summarizeBy: none
+		sourceColumn: name
+
+		annotation SummarizationSetBy = Automatic
+
+	column frequency
+		dataType: string
+		lineageTag: 4a2ba5c2-2801-5f78-869b-e9145ba2f400
+		summarizeBy: none
+		sourceColumn: frequency
+
+		annotation SummarizationSetBy = Automatic
+
+	column latest_period
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: 864738cd-4a5a-59df-9304-01642271fac9
+		summarizeBy: none
+		sourceColumn: latest_period
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column latest_vintage
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: 734b5cf4-f0fe-5243-8db3-d987bd85a515
+		summarizeBy: none
+		sourceColumn: latest_vintage
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column next_release
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: c8df40fe-eed0-5a5a-ad55-87f91d840049
+		summarizeBy: none
+		sourceColumn: next_release
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column last_fetch
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: a13cc65c-dae2-52b9-a99a-57cc1e42fd19
+		summarizeBy: none
+		sourceColumn: last_fetch
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column last_status
+		dataType: string
+		lineageTag: e5d37ebd-ca02-524b-a014-e4362aba98c8
+		summarizeBy: none
+		sourceColumn: last_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column last_success
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: f6f89301-da3d-5af7-82d0-842b59604de1
+		summarizeBy: none
+		sourceColumn: last_success
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column health
+		dataType: string
+		lineageTag: 5c6a62ee-b872-5e28-a928-85c0469bf941
+		summarizeBy: none
+		sourceColumn: health
+
+		annotation SummarizationSetBy = Automatic
+
+	column error_message
+		dataType: string
+		lineageTag: 39d3651c-1155-5ac4-b2b4-ac725809974b
+		summarizeBy: none
+		sourceColumn: error_message
+
+		annotation SummarizationSetBy = Automatic
+
+	partition DataHealth = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "data_health.parquet"), [Compression=null, LegacyColumnNameEncoding=false, MaxDepth=null]),
+				    Selected = Table.SelectColumns(Source, {"section", "series_id", "name", "frequency", "latest_period", "latest_vintage", "next_release", "last_fetch", "last_status", "last_success", "health", "error_message"})
+				in
+				    Selected
+
+	annotation PBI_ResultType = Table

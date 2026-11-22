@@ -1,0 +1,289 @@
+table Observations
+	lineageTag: 8074f34d-bc4d-5fad-b8eb-8bb06b4ea45d
+
+	/// Average of the values in context: the value itself for one series and period, the monthly average when daily data are shown by month.
+	measure 'Series Value' = AVERAGE ( Observations[value] )
+		formatString: 0.0
+		lineageTag: 71195906-ea9a-541e-b16c-6ae0bcc52152
+	/// Most recent value of the series in context, ignoring date filters.
+	measure 'Latest Value' =
+			VAR LatestPeriod =
+			    CALCULATE ( MAX ( Observations[period_date] ), REMOVEFILTERS ( 'Date' ) )
+			RETURN
+			    CALCULATE ( [Series Value], Observations[period_date] = LatestPeriod, REMOVEFILTERS ( 'Date' ) )
+		formatString: 0.00
+		lineageTag: f765b937-c136-5734-b8bc-4accd0889ebd
+	measure 'GDP growth q/q (%)' = CALCULATE ( [Series Value], Series[series_id] = "gdp_qoq" )
+		formatString: 0.0
+		displayFolder: Activity
+		lineageTag: 7eb0d95d-920f-5f69-803d-04212e908f10
+	measure 'Latest: GDP growth q/q (%)' = CALCULATE ( [Latest Value], Series[series_id] = "gdp_qoq" )
+		formatString: 0.0
+		displayFolder: Latest values\Activity
+		lineageTag: 87d8ea36-8462-5228-9ffe-c07be04009d0
+	measure 'Real GDP (£m)' = CALCULATE ( [Series Value], Series[series_id] = "gdp_real" )
+		formatString: #,0
+		displayFolder: Activity
+		lineageTag: df3b7daa-a10c-52af-a769-9ec9956b9edc
+	measure 'Latest: Real GDP (£m)' = CALCULATE ( [Latest Value], Series[series_id] = "gdp_real" )
+		formatString: #,0
+		displayFolder: Latest values\Activity
+		lineageTag: 4c43e05e-5cc0-5f8d-9077-2c002256df01
+	measure 'Monthly GDP index' = CALCULATE ( [Series Value], Series[series_id] = "gdp_monthly" )
+		formatString: 0.0
+		displayFolder: Activity
+		lineageTag: 97f9ffd1-58d1-55a1-bccf-4043d9ae611f
+	measure 'Latest: Monthly GDP index' = CALCULATE ( [Latest Value], Series[series_id] = "gdp_monthly" )
+		formatString: 0.0
+		displayFolder: Latest values\Activity
+		lineageTag: b7214b01-e8d1-548c-bd80-8531e8514a0a
+	measure 'Services output index' = CALCULATE ( [Series Value], Series[series_id] = "services_output" )
+		formatString: 0.0
+		displayFolder: Activity
+		lineageTag: a6055d9a-995b-5657-957a-49b6db809065
+	measure 'Latest: Services output index' = CALCULATE ( [Latest Value], Series[series_id] = "services_output" )
+		formatString: 0.0
+		displayFolder: Latest values\Activity
+		lineageTag: c5bd0ad5-9a3e-5829-8071-3142080074cb
+	measure 'Unemployment rate (%)' = CALCULATE ( [Series Value], Series[series_id] = "unemployment_rate" )
+		formatString: 0.0
+		displayFolder: Labour market
+		lineageTag: 2916b058-9626-5170-b27c-90e47578b4b6
+	measure 'Latest: Unemployment rate (%)' = CALCULATE ( [Latest Value], Series[series_id] = "unemployment_rate" )
+		formatString: 0.0
+		displayFolder: Latest values\Labour market
+		lineageTag: 7b9ccbea-7dc7-5fa0-986a-d45fb139af95
+	measure 'Employment rate (%)' = CALCULATE ( [Series Value], Series[series_id] = "employment_rate" )
+		formatString: 0.0
+		displayFolder: Labour market
+		lineageTag: 09105144-fdaa-58f2-94c2-eafe78c923fa
+	measure 'Latest: Employment rate (%)' = CALCULATE ( [Latest Value], Series[series_id] = "employment_rate" )
+		formatString: 0.0
+		displayFolder: Latest values\Labour market
+		lineageTag: d6e25945-0948-587c-9275-4fce660a106d
+	measure 'Vacancies (000s)' = CALCULATE ( [Series Value], Series[series_id] = "vacancies" )
+		formatString: #,0
+		displayFolder: Labour market
+		lineageTag: d04b64e6-b4d3-550f-8bdb-bcba3f967bf7
+	measure 'Latest: Vacancies (000s)' = CALCULATE ( [Latest Value], Series[series_id] = "vacancies" )
+		formatString: #,0
+		displayFolder: Latest values\Labour market
+		lineageTag: fe4edaf3-b842-54d5-a81a-804366f27c16
+	measure 'Regular pay growth (%)' = CALCULATE ( [Series Value], Series[series_id] = "regular_pay_yoy" )
+		formatString: 0.0
+		displayFolder: Labour market
+		lineageTag: 5c204cc0-8c06-504c-a5c4-85215ee6b3af
+	measure 'Latest: Regular pay growth (%)' = CALCULATE ( [Latest Value], Series[series_id] = "regular_pay_yoy" )
+		formatString: 0.0
+		displayFolder: Latest values\Labour market
+		lineageTag: 52a25e54-0314-54c6-b6f4-b5a0ddcc785d
+	measure 'Private regular pay growth (%)' = CALCULATE ( [Series Value], Series[series_id] = "private_regular_pay_yoy" )
+		formatString: 0.0
+		displayFolder: Labour market
+		lineageTag: c132b763-c6d5-51bd-86d0-627679c46b5e
+	measure 'Latest: Private regular pay growth (%)' = CALCULATE ( [Latest Value], Series[series_id] = "private_regular_pay_yoy" )
+		formatString: 0.0
+		displayFolder: Latest values\Labour market
+		lineageTag: 197576d8-3d8e-5bd0-9b90-4426b98e0610
+	measure 'CPI inflation (%)' = CALCULATE ( [Series Value], Series[series_id] = "cpi_yoy" )
+		formatString: 0.0
+		displayFolder: Prices
+		lineageTag: 66f34a75-aeda-533f-9198-860461ebfdb3
+	measure 'Latest: CPI inflation (%)' = CALCULATE ( [Latest Value], Series[series_id] = "cpi_yoy" )
+		formatString: 0.0
+		displayFolder: Latest values\Prices
+		lineageTag: 1f177625-ed76-508e-b666-b1cf456e4c1c
+	measure 'Core CPI inflation (%)' = CALCULATE ( [Series Value], Series[series_id] = "core_cpi_yoy" )
+		formatString: 0.0
+		displayFolder: Prices
+		lineageTag: 7637e51d-e832-5a84-a40b-6ff5b12d19a7
+	measure 'Latest: Core CPI inflation (%)' = CALCULATE ( [Latest Value], Series[series_id] = "core_cpi_yoy" )
+		formatString: 0.0
+		displayFolder: Latest values\Prices
+		lineageTag: 6ae9b79a-a7fd-57a0-abe0-81aa80bbab8b
+	measure 'Services CPI inflation (%)' = CALCULATE ( [Series Value], Series[series_id] = "services_cpi_yoy" )
+		formatString: 0.0
+		displayFolder: Prices
+		lineageTag: 99c708cc-cd00-5c22-8d9d-04e743b1d098
+	measure 'Latest: Services CPI inflation (%)' = CALCULATE ( [Latest Value], Series[series_id] = "services_cpi_yoy" )
+		formatString: 0.0
+		displayFolder: Latest values\Prices
+		lineageTag: ab7841dd-64a1-5e97-b589-0e0343822e7b
+	measure 'Goods CPI inflation (%)' = CALCULATE ( [Series Value], Series[series_id] = "goods_cpi_yoy" )
+		formatString: 0.0
+		displayFolder: Prices
+		lineageTag: 8111049c-794c-542c-b010-4a1d3e42fe32
+	measure 'Latest: Goods CPI inflation (%)' = CALCULATE ( [Latest Value], Series[series_id] = "goods_cpi_yoy" )
+		formatString: 0.0
+		displayFolder: Latest values\Prices
+		lineageTag: 3aa39a90-6fc0-59fc-aeb1-74d9e7534b81
+	measure 'CPIH inflation (%)' = CALCULATE ( [Series Value], Series[series_id] = "cpih_yoy" )
+		formatString: 0.0
+		displayFolder: Prices
+		lineageTag: 91fcdae6-36f8-54e0-ae55-54099fd24e87
+	measure 'Latest: CPIH inflation (%)' = CALCULATE ( [Latest Value], Series[series_id] = "cpih_yoy" )
+		formatString: 0.0
+		displayFolder: Latest values\Prices
+		lineageTag: 3eaba952-ad34-57c4-bcf4-308842d70149
+	measure 'Retail sales volume index' = CALCULATE ( [Series Value], Series[series_id] = "retail_sales_volume" )
+		formatString: 0.0
+		displayFolder: Households
+		lineageTag: b5d219f4-49c7-55a8-b2f2-f6de6d2cd918
+	measure 'Latest: Retail sales volume index' = CALCULATE ( [Latest Value], Series[series_id] = "retail_sales_volume" )
+		formatString: 0.0
+		displayFolder: Latest values\Households
+		lineageTag: d3816323-188c-5184-b934-676978b0a06c
+	measure 'Public sector net borrowing (£m)' = CALCULATE ( [Series Value], Series[series_id] = "psnb" )
+		formatString: #,0
+		displayFolder: Public finances
+		lineageTag: dfe3ee74-08e5-5a26-a0a9-e9063f328109
+	measure 'Latest: Public sector net borrowing (£m)' = CALCULATE ( [Latest Value], Series[series_id] = "psnb" )
+		formatString: #,0
+		displayFolder: Latest values\Public finances
+		lineageTag: f08dcdb2-07c1-5a06-b8f2-96a21990c24a
+	measure 'Trade balance (£m)' = CALCULATE ( [Series Value], Series[series_id] = "trade_balance" )
+		formatString: #,0
+		displayFolder: External
+		lineageTag: 97119791-ac87-5ffd-9866-aef99176d248
+	measure 'Latest: Trade balance (£m)' = CALCULATE ( [Latest Value], Series[series_id] = "trade_balance" )
+		formatString: #,0
+		displayFolder: Latest values\External
+		lineageTag: 75ae1d35-c5fa-5999-bf65-098aa0389b63
+	measure 'Bank Rate (%)' = CALCULATE ( [Series Value], Series[series_id] = "bank_rate" )
+		formatString: 0.00
+		displayFolder: Monetary policy and rates
+		lineageTag: c2782ed5-c438-5c14-bbbc-faec91d29af8
+	measure 'Latest: Bank Rate (%)' = CALCULATE ( [Latest Value], Series[series_id] = "bank_rate" )
+		formatString: 0.00
+		displayFolder: Latest values\Monetary policy and rates
+		lineageTag: ef5661e7-c5cf-578a-9aeb-9b3740abc9fd
+	measure 'SONIA (%)' = CALCULATE ( [Series Value], Series[series_id] = "sonia" )
+		formatString: 0.00
+		displayFolder: Monetary policy and rates
+		lineageTag: bceb2369-b8c4-5bc4-b7c6-4d6904c48249
+	measure 'Latest: SONIA (%)' = CALCULATE ( [Latest Value], Series[series_id] = "sonia" )
+		formatString: 0.00
+		displayFolder: Latest values\Monetary policy and rates
+		lineageTag: 51c3c386-b08f-5f4d-8908-6b4d1683f067
+	measure '5-year gilt yield (%)' = CALCULATE ( [Series Value], Series[series_id] = "gilt_5y" )
+		formatString: 0.00
+		displayFolder: Monetary policy and rates
+		lineageTag: 5dc9894c-dee8-5e45-95e7-f76ab7e5b591
+	measure 'Latest: 5-year gilt yield (%)' = CALCULATE ( [Latest Value], Series[series_id] = "gilt_5y" )
+		formatString: 0.00
+		displayFolder: Latest values\Monetary policy and rates
+		lineageTag: 3343cef2-40bf-5430-be8b-31bf990c3684
+	measure '10-year gilt yield (%)' = CALCULATE ( [Series Value], Series[series_id] = "gilt_10y" )
+		formatString: 0.00
+		displayFolder: Monetary policy and rates
+		lineageTag: 600a565c-c1d0-599f-a662-8b457289dbf5
+	measure 'Latest: 10-year gilt yield (%)' = CALCULATE ( [Latest Value], Series[series_id] = "gilt_10y" )
+		formatString: 0.00
+		displayFolder: Latest values\Monetary policy and rates
+		lineageTag: 51d0b239-289c-5ce6-91de-56e8c1ed57ab
+	measure '20-year gilt yield (%)' = CALCULATE ( [Series Value], Series[series_id] = "gilt_20y" )
+		formatString: 0.00
+		displayFolder: Monetary policy and rates
+		lineageTag: 73bbf512-d5b8-54db-89e4-f56550d1d140
+	measure 'Latest: 20-year gilt yield (%)' = CALCULATE ( [Latest Value], Series[series_id] = "gilt_20y" )
+		formatString: 0.00
+		displayFolder: Latest values\Monetary policy and rates
+		lineageTag: 82612300-7b42-59d9-8fd3-19f23a3994f9
+	measure '2-year fixed mortgage rate (%)' = CALCULATE ( [Series Value], Series[series_id] = "mortgage_rate_2y" )
+		formatString: 0.0
+		displayFolder: Monetary policy and rates
+		lineageTag: 43113444-1831-562f-82ee-7c0807b96005
+	measure 'Latest: 2-year fixed mortgage rate (%)' = CALCULATE ( [Latest Value], Series[series_id] = "mortgage_rate_2y" )
+		formatString: 0.0
+		displayFolder: Latest values\Monetary policy and rates
+		lineageTag: 7e74744d-d61b-5e97-960f-67c551ca260d
+	measure 'Mortgage approvals' = CALCULATE ( [Series Value], Series[series_id] = "mortgage_approvals" )
+		formatString: #,0
+		displayFolder: Money and credit
+		lineageTag: 603abe81-7459-5135-a5a0-2e09cec470be
+	measure 'Latest: Mortgage approvals' = CALCULATE ( [Latest Value], Series[series_id] = "mortgage_approvals" )
+		formatString: #,0
+		displayFolder: Latest values\Money and credit
+		lineageTag: c28b7eec-0834-5fc7-9aba-996518db0979
+	measure 'Sterling ERI' = CALCULATE ( [Series Value], Series[series_id] = "sterling_eri" )
+		formatString: 0.0
+		displayFolder: External
+		lineageTag: 0beeb111-590e-594e-a445-4f6f183469ab
+	measure 'Latest: Sterling ERI' = CALCULATE ( [Latest Value], Series[series_id] = "sterling_eri" )
+		formatString: 0.0
+		displayFolder: Latest values\External
+		lineageTag: d2f459d8-b7ab-594c-9687-a3abef0ef219
+	measure 'GBP/USD' = CALCULATE ( [Series Value], Series[series_id] = "gbp_usd" )
+		formatString: 0.0000
+		displayFolder: External
+		lineageTag: 71391f49-e5a9-5751-9b79-bfde6070a086
+	measure 'Latest: GBP/USD' = CALCULATE ( [Latest Value], Series[series_id] = "gbp_usd" )
+		formatString: 0.0000
+		displayFolder: Latest values\External
+		lineageTag: 43da35c3-f376-5571-8a16-70f037d33485
+	measure 'GBP/EUR' = CALCULATE ( [Series Value], Series[series_id] = "gbp_eur" )
+		formatString: 0.0000
+		displayFolder: External
+		lineageTag: c088bb17-2015-515d-97b2-76fc7f205070
+	measure 'Latest: GBP/EUR' = CALCULATE ( [Latest Value], Series[series_id] = "gbp_eur" )
+		formatString: 0.0000
+		displayFolder: Latest values\External
+		lineageTag: 00a92ad5-3671-549d-b6aa-105b02c2cb86
+	/// The Bank of England's 2% CPI target, shown only where CPI data exist.
+	measure 'Inflation target (%)' = IF ( NOT ISBLANK ( [CPI inflation (%)] ), 2 )
+		formatString: 0.0
+		displayFolder: Prices
+		lineageTag: 70ea379f-6185-555b-878c-78f62e0a5236
+
+	column series_id
+		dataType: string
+		isHidden
+		lineageTag: 3d4c1bdf-37b9-5c6f-84f8-3c9b6f22857c
+		summarizeBy: none
+		sourceColumn: series_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column period_date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: 7e1d5f2b-106c-58c5-bc4d-9b37970913cf
+		summarizeBy: none
+		sourceColumn: period_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column value
+		dataType: double
+		lineageTag: f7967043-5023-532e-bd82-0dfd1a63e745
+		summarizeBy: sum
+		sourceColumn: value
+
+		annotation SummarizationSetBy = Automatic
+
+	column vintage_date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: 2bd6de04-a4d2-56ab-9d0e-2d54da8e9892
+		summarizeBy: none
+		sourceColumn: vintage_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition Observations = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "latest_observations.parquet"), [Compression=null, LegacyColumnNameEncoding=false, MaxDepth=null]),
+				    Selected = Table.SelectColumns(Source, {"series_id", "period_date", "value", "vintage_date"}),
+				    Filtered = Table.SelectRows(Selected, each [period_date] >= DashboardStart)
+				in
+				    Filtered
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,126 @@
+table Snapshot
+	lineageTag: 472b3e87-559b-5fd5-9e76-7ab6befd360c
+
+	column section
+		dataType: string
+		lineageTag: f5ed94ad-865d-554d-8720-3bc04fb800b8
+		summarizeBy: none
+		sourceColumn: section
+
+		annotation SummarizationSetBy = Automatic
+
+	column series_id
+		dataType: string
+		lineageTag: 1c17c849-2f48-5034-aaa1-bcf958a59e4b
+		summarizeBy: none
+		sourceColumn: series_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column name
+		dataType: string
+		lineageTag: 703b451f-f8fe-58b1-88c8-ec8027468e1f
+		summarizeBy: none
+		sourceColumn: name
+
+		annotation SummarizationSetBy = Automatic
+
+	column frequency
+		dataType: string
+		lineageTag: 324d5d06-91ea-5d87-be1a-f5f90809e6e4
+		summarizeBy: none
+		sourceColumn: frequency
+
+		annotation SummarizationSetBy = Automatic
+
+	column units
+		dataType: string
+		lineageTag: 0655bb0c-5147-5edf-9f87-2826b9310dea
+		summarizeBy: none
+		sourceColumn: units
+
+		annotation SummarizationSetBy = Automatic
+
+	column latest_period
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: 50362e62-6c14-54eb-8c91-43555c3d48bd
+		summarizeBy: none
+		sourceColumn: latest_period
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column latest_value
+		dataType: double
+		lineageTag: 76234045-560e-5667-86dc-8e8547707e8f
+		summarizeBy: none
+		sourceColumn: latest_value
+
+		annotation SummarizationSetBy = Automatic
+
+	column change_period_date
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: 1a6721f7-3e92-5b18-8181-a8488e679242
+		summarizeBy: none
+		sourceColumn: change_period_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column change_period
+		dataType: double
+		lineageTag: 9bcf2580-27c9-5cee-9acc-cbaad98bbb37
+		summarizeBy: none
+		sourceColumn: change_period
+
+		annotation SummarizationSetBy = Automatic
+
+	column change_yoy
+		dataType: double
+		lineageTag: c9cc9314-47dd-5f15-b4ba-0b340deb60a5
+		summarizeBy: none
+		sourceColumn: change_yoy
+
+		annotation SummarizationSetBy = Automatic
+
+	column change_3m3m_annualised
+		dataType: double
+		lineageTag: fd892a15-c25a-5a62-bdd5-82b0b1092fe0
+		summarizeBy: none
+		sourceColumn: change_3m3m_annualised
+
+		annotation SummarizationSetBy = Automatic
+
+	column change_units
+		dataType: string
+		lineageTag: d2f20602-8112-5320-8417-8907ee9bba22
+		summarizeBy: none
+		sourceColumn: change_units
+
+		annotation SummarizationSetBy = Automatic
+
+	column next_release
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: eeb8ff93-1624-5439-8a06-180968cacc35
+		summarizeBy: none
+		sourceColumn: next_release
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition Snapshot = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "latest_snapshot.parquet"), [Compression=null, LegacyColumnNameEncoding=false, MaxDepth=null]),
+				    Selected = Table.SelectColumns(Source, {"section", "series_id", "name", "frequency", "units", "latest_period", "latest_value", "change_period_date", "change_period", "change_yoy", "change_3m3m_annualised", "change_units", "next_release"})
+				in
+				    Selected
+
+	annotation PBI_ResultType = Table

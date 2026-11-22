@@ -1,0 +1,39 @@
+table Date
+	lineageTag: 190f2319-8910-5320-a9d2-a7a7faebb371
+	dataCategory: Time
+
+	column Date
+		dataType: dateTime
+		isKey
+		formatString: dd mmm yyyy
+		lineageTag: 7da3f077-d41a-5b32-bdff-7125cc4d286c
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Year = YEAR ( 'Date'[Date] )
+		dataType: int64
+		formatString: 0
+		lineageTag: c9e80130-51f3-520b-a451-60d566869b87
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Start' = DATE ( YEAR ( 'Date'[Date] ), MONTH ( 'Date'[Date] ), 1 )
+		dataType: dateTime
+		formatString: mmm yyyy
+		lineageTag: eaf77044-23d0-57a3-93fd-1f433971fbc3
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition Date = calculated
+		mode: import
+		source = CALENDAR ( DATE ( YEAR ( MIN ( Observations[period_date] ) ), 1, 1 ), DATE ( YEAR ( MAX ( Observations[period_date] ) ), 12, 31 ) )
+

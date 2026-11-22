@@ -1,0 +1,171 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "fec9be24fb3259838a9a",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 0,
+    "width": 1240,
+    "height": 680,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataHealth"
+                    }
+                  },
+                  "Property": "section"
+                }
+              },
+              "queryRef": "DataHealth.section",
+              "nativeQueryRef": "section"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataHealth"
+                    }
+                  },
+                  "Property": "name"
+                }
+              },
+              "queryRef": "DataHealth.name",
+              "nativeQueryRef": "name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataHealth"
+                    }
+                  },
+                  "Property": "latest_period"
+                }
+              },
+              "queryRef": "DataHealth.latest_period",
+              "nativeQueryRef": "latest_period"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataHealth"
+                    }
+                  },
+                  "Property": "latest_vintage"
+                }
+              },
+              "queryRef": "DataHealth.latest_vintage",
+              "nativeQueryRef": "latest_vintage"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataHealth"
+                    }
+                  },
+                  "Property": "next_release"
+                }
+              },
+              "queryRef": "DataHealth.next_release",
+              "nativeQueryRef": "next_release"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataHealth"
+                    }
+                  },
+                  "Property": "last_status"
+                }
+              },
+              "queryRef": "DataHealth.last_status",
+              "nativeQueryRef": "last_status"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataHealth"
+                    }
+                  },
+                  "Property": "health"
+                }
+              },
+              "queryRef": "DataHealth.health",
+              "nativeQueryRef": "health"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DataHealth"
+                    }
+                  },
+                  "Property": "error_message"
+                }
+              },
+              "queryRef": "DataHealth.error_message",
+              "nativeQueryRef": "error_message"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true,
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Data health by series'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

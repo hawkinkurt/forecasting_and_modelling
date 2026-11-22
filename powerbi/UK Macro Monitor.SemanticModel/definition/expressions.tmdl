@@ -1,0 +1,10 @@
+expression ExportFolder = "C:\Users\kurtl\PycharmProjects\Forecasting and Modelling\exports\" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: a545fa01-db26-5219-b115-488fa258b461
+
+	annotation PBI_ResultType = Text
+
+expression DashboardStart = #date(2000, 1, 1) meta [IsParameterQuery=true, Type="Date", IsParameterQueryRequired=true]
+	lineageTag: 8f8b3ee5-3612-5f4e-80ab-d26992f557a2
+
+	annotation PBI_ResultType = Date
+

@@ -1,0 +1,102 @@
+table PsnbFiscalYear
+	lineageTag: 56b45135-5d5c-5209-9049-fcb4ab3d5ede
+
+	measure 'Borrowing this fiscal year to date (£bn)' =
+			VAR LatestFY =
+			    CALCULATE ( MAX ( PsnbFiscalYear[fiscal_year] ), REMOVEFILTERS ( PsnbFiscalYear ), REMOVEFILTERS ( 'Date' ) )
+			RETURN
+			    DIVIDE ( CALCULATE ( SUM ( PsnbFiscalYear[psnb_fytd] ), PsnbFiscalYear[fiscal_year] = LatestFY, REMOVEFILTERS ( 'Date' ) ), 1000 )
+		formatString: 0.0
+		displayFolder: Public finances
+		lineageTag: 14c9486e-c726-5d59-bc6f-86c68da55d52
+	measure 'Borrowing last fiscal year to date (£bn)' =
+			VAR LatestFY =
+			    CALCULATE ( MAX ( PsnbFiscalYear[fiscal_year] ), REMOVEFILTERS ( PsnbFiscalYear ), REMOVEFILTERS ( 'Date' ) )
+			VAR PreviousFY =
+			    CALCULATE ( MAX ( PsnbFiscalYear[fiscal_year] ), PsnbFiscalYear[fiscal_year] < LatestFY, REMOVEFILTERS ( PsnbFiscalYear ), REMOVEFILTERS ( 'Date' ) )
+			RETURN
+			    DIVIDE ( CALCULATE ( SUM ( PsnbFiscalYear[psnb_fytd] ), PsnbFiscalYear[fiscal_year] = PreviousFY, REMOVEFILTERS ( 'Date' ) ), 1000 )
+		formatString: 0.0
+		displayFolder: Public finances
+		lineageTag: 9bf4bdee-e7cb-54c0-9984-275b79ede0ab
+
+	column period_date
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: 5f2e4479-9b9e-5b54-8d71-3617d8f70eb5
+		summarizeBy: none
+		sourceColumn: period_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column fiscal_year
+		dataType: string
+		lineageTag: 0f201d55-f851-5896-aab2-2d60339759b2
+		summarizeBy: none
+		sourceColumn: fiscal_year
+
+		annotation SummarizationSetBy = Automatic
+
+	column month_of_fy
+		dataType: int64
+		lineageTag: 40b5b3c3-13b6-543c-b52b-34b564a1600b
+		summarizeBy: none
+		sourceColumn: month_of_fy
+
+		annotation SummarizationSetBy = Automatic
+
+	column psnb_month
+		dataType: double
+		lineageTag: 0e169576-e935-59d8-8237-bd09017a7e39
+		summarizeBy: sum
+		sourceColumn: psnb_month
+
+		annotation SummarizationSetBy = Automatic
+
+	column psnb_fytd
+		dataType: double
+		lineageTag: 3ddd9a3b-b6af-541f-8e90-cb64fe5a0f65
+		summarizeBy: sum
+		sourceColumn: psnb_fytd
+
+		annotation SummarizationSetBy = Automatic
+
+	column psnb_fytd_last_year
+		dataType: double
+		lineageTag: 0020aa94-8ad9-5b8f-b465-6d6968895f10
+		summarizeBy: sum
+		sourceColumn: psnb_fytd_last_year
+
+		annotation SummarizationSetBy = Automatic
+
+	column fytd_change_on_last_year
+		dataType: double
+		lineageTag: 8d57174d-d1be-555d-b7b2-25398821a637
+		summarizeBy: sum
+		sourceColumn: fytd_change_on_last_year
+
+		annotation SummarizationSetBy = Automatic
+
+	column fy_month
+		dataType: string
+		lineageTag: 09bd01fb-7f8a-5072-b1cc-ecab226958a6
+		summarizeBy: none
+		sourceColumn: fy_month
+		sortByColumn: month_of_fy
+
+		annotation SummarizationSetBy = Automatic
+
+	partition PsnbFiscalYear = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "psnb_fiscal_year.parquet"), [Compression=null, LegacyColumnNameEncoding=false, MaxDepth=null]),
+				    Selected = Table.SelectColumns(Source, {"period_date", "fiscal_year", "month_of_fy", "psnb_month", "psnb_fytd", "psnb_fytd_last_year", "fytd_change_on_last_year"}),
+				    Filtered = Table.SelectRows(Selected, each [period_date] >= DashboardStart),
+				    AddMonth = Table.AddColumn(Filtered, "fy_month", each Date.ToText([period_date], "MMM"), type text)
+				in
+				    AddMonth
+
+	annotation PBI_ResultType = Table

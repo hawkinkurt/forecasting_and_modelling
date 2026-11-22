@@ -1,0 +1,88 @@
+table Changes
+	lineageTag: 4efb343b-62b8-566e-8c8a-ca0fd694d355
+
+	measure 'Monthly GDP growth, 3m/3m annualised (%)' = CALCULATE ( AVERAGE ( Changes[change_3m3m_annualised] ), Series[series_id] = "gdp_monthly" )
+		formatString: 0.0
+		displayFolder: Activity
+		lineageTag: 023fd52e-beea-54c1-a320-292a31c7d236
+	measure 'Monthly GDP growth, y/y (%)' = CALCULATE ( AVERAGE ( Changes[change_yoy] ), Series[series_id] = "gdp_monthly" )
+		formatString: 0.0
+		displayFolder: Activity
+		lineageTag: ca5aea5a-5b0f-51db-a265-0a5e54504357
+	measure 'Services output growth, 3m/3m annualised (%)' = CALCULATE ( AVERAGE ( Changes[change_3m3m_annualised] ), Series[series_id] = "services_output" )
+		formatString: 0.0
+		displayFolder: Activity
+		lineageTag: 6c63d4c4-1eed-5955-bc39-ddb5c1ea2bd3
+	measure 'Retail sales volume growth, y/y (%)' = CALCULATE ( AVERAGE ( Changes[change_yoy] ), Series[series_id] = "retail_sales_volume" )
+		formatString: 0.0
+		displayFolder: Households
+		lineageTag: 0d599dad-bd2f-5407-a56f-8590dd281a92
+	measure 'Mortgage approvals growth, y/y (%)' = CALCULATE ( AVERAGE ( Changes[change_yoy] ), Series[series_id] = "mortgage_approvals" )
+		formatString: 0.0
+		displayFolder: Money and credit
+		lineageTag: 19674583-4018-5583-ac2a-61cf3c82ca57
+
+	column series_id
+		dataType: string
+		isHidden
+		lineageTag: 3d6c599c-8d15-51ea-bbb4-3e7e170f89cd
+		summarizeBy: none
+		sourceColumn: series_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column period_date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: 82d093d6-23b5-56d1-b36d-ab445ff084dd
+		summarizeBy: none
+		sourceColumn: period_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column is_complete
+		dataType: boolean
+		lineageTag: db2a947f-3464-5ee3-aad6-f27fb1ad7b33
+		summarizeBy: none
+		sourceColumn: is_complete
+
+		annotation SummarizationSetBy = Automatic
+
+	column change_period
+		dataType: double
+		lineageTag: 4deeb328-d6f1-5bf7-92d1-fead34f779da
+		summarizeBy: sum
+		sourceColumn: change_period
+
+		annotation SummarizationSetBy = Automatic
+
+	column change_yoy
+		dataType: double
+		lineageTag: 6c515edd-7dc5-57fb-8ea2-78134b224ae4
+		summarizeBy: sum
+		sourceColumn: change_yoy
+
+		annotation SummarizationSetBy = Automatic
+
+	column change_3m3m_annualised
+		dataType: double
+		lineageTag: 29798d8c-dfbd-552f-bd40-11a95047f8bd
+		summarizeBy: sum
+		sourceColumn: change_3m3m_annualised
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Changes = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "changes.parquet"), [Compression=null, LegacyColumnNameEncoding=false, MaxDepth=null]),
+				    Selected = Table.SelectColumns(Source, {"series_id", "period_date", "is_complete", "change_period", "change_yoy", "change_3m3m_annualised"}),
+				    Filtered = Table.SelectRows(Selected, each [period_date] >= DashboardStart)
+				in
+				    Filtered
+
+	annotation PBI_ResultType = Table

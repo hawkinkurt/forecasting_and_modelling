@@ -1,0 +1,69 @@
+table RealPay
+	lineageTag: d037446b-1599-5fbf-9433-c59f3aec91cd
+
+	/// Whole-economy regular pay growth deflated by CPIH inflation (3-month averages).
+	measure 'Real regular pay growth (%)' = CALCULATE ( AVERAGE ( RealPay[real_pay_growth] ), RealPay[series_id] = "regular_pay_yoy" )
+		formatString: 0.0
+		displayFolder: Labour market
+		lineageTag: 130770cc-0bf5-598f-812e-44a18f5083b2
+	measure 'Real private regular pay growth (%)' = CALCULATE ( AVERAGE ( RealPay[real_pay_growth] ), RealPay[series_id] = "private_regular_pay_yoy" )
+		formatString: 0.0
+		displayFolder: Labour market
+		lineageTag: daa6a1e4-0878-5d9d-9fe8-be331c35df63
+
+	column series_id
+		dataType: string
+		isHidden
+		lineageTag: b7edc362-b1be-56a0-899a-7876d755bf6d
+		summarizeBy: none
+		sourceColumn: series_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column period_date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: 20732b11-e50b-5d66-bb89-3346e1a5e7ad
+		summarizeBy: none
+		sourceColumn: period_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column nominal_pay_growth
+		dataType: double
+		lineageTag: 6db8c153-1ad8-52be-8896-ea5667e6b3fe
+		summarizeBy: sum
+		sourceColumn: nominal_pay_growth
+
+		annotation SummarizationSetBy = Automatic
+
+	column cpih_inflation_3m_avg
+		dataType: double
+		lineageTag: c5abbeac-5580-5e0a-8d5a-296cf482343b
+		summarizeBy: sum
+		sourceColumn: cpih_inflation_3m_avg
+
+		annotation SummarizationSetBy = Automatic
+
+	column real_pay_growth
+		dataType: double
+		lineageTag: 4556296c-5854-5c13-87be-3d9d3c179909
+		summarizeBy: sum
+		sourceColumn: real_pay_growth
+
+		annotation SummarizationSetBy = Automatic
+
+	partition RealPay = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "real_pay.parquet"), [Compression=null, LegacyColumnNameEncoding=false, MaxDepth=null]),
+				    Selected = Table.SelectColumns(Source, {"series_id", "period_date", "nominal_pay_growth", "cpih_inflation_3m_avg", "real_pay_growth"}),
+				    Filtered = Table.SelectRows(Selected, each [period_date] >= DashboardStart)
+				in
+				    Filtered
+
+	annotation PBI_ResultType = Table

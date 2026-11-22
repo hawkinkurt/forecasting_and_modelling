@@ -1,0 +1,28 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-NZ
+	valueFilterBehavior: independent
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_QueryOrder = ["ExportFolder", "DashboardStart", "Series", "Observations", "Changes", "RealPay", "YieldCurve", "RealPolicyRate", "PsnbFiscalYear", "Snapshot", "DataHealth"]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table Series
+ref table Observations
+ref table Changes
+ref table RealPay
+ref table YieldCurve
+ref table RealPolicyRate
+ref table PsnbFiscalYear
+ref table Snapshot
+ref table DataHealth
+ref table Date
+
+ref cultureInfo en-US
+

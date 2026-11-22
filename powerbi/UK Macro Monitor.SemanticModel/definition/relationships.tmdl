@@ -1,0 +1,38 @@
+relationship c90dbedf-f10c-5496-949b-41f5fefda666
+	fromColumn: Observations.series_id
+	toColumn: Series.series_id
+
+relationship 1ab7e792-d8ff-58ea-b21d-b62f3cc1d7bc
+	fromColumn: Changes.series_id
+	toColumn: Series.series_id
+
+relationship 7a30742a-d833-5c74-9598-da5bdfab6c17
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Observations.period_date
+	toColumn: Date.Date
+
+relationship cbcc07ad-a861-5204-8ec7-9e9043bc6b76
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Changes.period_date
+	toColumn: Date.Date
+
+relationship 9680306e-fb68-5d7d-8986-ded450488b98
+	joinOnDateBehavior: datePartOnly
+	fromColumn: RealPay.period_date
+	toColumn: Date.Date
+
+relationship 9acfa28a-86f3-5d99-86b6-1a650c5e9c42
+	joinOnDateBehavior: datePartOnly
+	fromColumn: YieldCurve.period_date
+	toColumn: Date.Date
+
+relationship e790ca24-4c9b-5839-9901-06721e586d77
+	joinOnDateBehavior: datePartOnly
+	fromColumn: RealPolicyRate.period_date
+	toColumn: Date.Date
+
+relationship 96a2d16b-73ee-588e-a1cc-f2cfbffc5b66
+	joinOnDateBehavior: datePartOnly
+	fromColumn: PsnbFiscalYear.period_date
+	toColumn: Date.Date
+

@@ -1,0 +1,91 @@
+table Series
+	lineageTag: 4d7ea3ca-3df2-5e26-9000-7ba4261a4587
+
+	column series_id
+		dataType: string
+		lineageTag: fabc1bc2-6774-5e0d-8132-39c6db1757a8
+		summarizeBy: none
+		sourceColumn: series_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column name
+		dataType: string
+		lineageTag: d6180ce0-7916-56fc-a6f1-81c665cc7654
+		summarizeBy: none
+		sourceColumn: name
+
+		annotation SummarizationSetBy = Automatic
+
+	column section
+		dataType: string
+		lineageTag: bd1dac4e-5de2-5c78-9a2f-8031901ed4c3
+		summarizeBy: none
+		sourceColumn: section
+
+		annotation SummarizationSetBy = Automatic
+
+	column frequency
+		dataType: string
+		lineageTag: 5b3eb702-4e1f-508f-8ef1-d82413814fd5
+		summarizeBy: none
+		sourceColumn: frequency
+
+		annotation SummarizationSetBy = Automatic
+
+	column units
+		dataType: string
+		lineageTag: 86e908fd-4f02-5ea0-a968-0f1ea37e452e
+		summarizeBy: none
+		sourceColumn: units
+
+		annotation SummarizationSetBy = Automatic
+
+	column measure
+		dataType: string
+		lineageTag: 56860af0-43d2-5b50-915e-b7829ee1c0f2
+		summarizeBy: none
+		sourceColumn: measure
+
+		annotation SummarizationSetBy = Automatic
+
+	column source
+		dataType: string
+		lineageTag: 940299d2-d58a-50a4-8b13-07b78b334fe3
+		summarizeBy: none
+		sourceColumn: source
+
+		annotation SummarizationSetBy = Automatic
+
+	column next_release
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: 1eb84873-b74e-5a4d-a258-0eaaab687243
+		summarizeBy: none
+		sourceColumn: next_release
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column last_fetched
+		dataType: dateTime
+		formatString: dd mmm yyyy
+		lineageTag: b6587851-2e7d-50da-8d7d-6ae9736285c2
+		summarizeBy: none
+		sourceColumn: last_fetched
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition Series = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "series.parquet"), [Compression=null, LegacyColumnNameEncoding=false, MaxDepth=null]),
+				    Selected = Table.SelectColumns(Source, {"series_id", "name", "section", "frequency", "units", "measure", "source", "next_release", "last_fetched"})
+				in
+				    Selected
+
+	annotation PBI_ResultType = Table

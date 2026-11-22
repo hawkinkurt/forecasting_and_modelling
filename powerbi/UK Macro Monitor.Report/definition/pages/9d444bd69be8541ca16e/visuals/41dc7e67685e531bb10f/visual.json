@@ -1,0 +1,119 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "41dc7e67685e531bb10f",
+  "position": {
+    "x": 650,
+    "y": 90,
+    "z": 2,
+    "width": 610,
+    "height": 300,
+    "tabOrder": 2
+  },
+  "visual": {
+    "visualType": "lineChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Date"
+                    }
+                  },
+                  "Property": "Date"
+                }
+              },
+              "queryRef": "Date.Date",
+              "nativeQueryRef": "Date"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "YieldCurve"
+                    }
+                  },
+                  "Property": "10y gilt minus Bank Rate (bp)"
+                }
+              },
+              "queryRef": "YieldCurve.10y gilt minus Bank Rate (bp)",
+              "nativeQueryRef": "10y gilt minus Bank Rate (bp)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "YieldCurve"
+                    }
+                  },
+                  "Property": "10y minus 5y gilt (bp)"
+                }
+              },
+              "queryRef": "YieldCurve.10y minus 5y gilt (bp)",
+              "nativeQueryRef": "10y minus 5y gilt (bp)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "YieldCurve"
+                    }
+                  },
+                  "Property": "20y minus 5y gilt (bp)"
+                }
+              },
+              "queryRef": "YieldCurve.20y minus 5y gilt (bp)",
+              "nativeQueryRef": "20y minus 5y gilt (bp)"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true,
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Yield curve spreads, daily (bp)'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

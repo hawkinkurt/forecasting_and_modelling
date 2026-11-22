@@ -1,0 +1,133 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "e6d1a5e8fac65636aaca",
+  "position": {
+    "x": 650,
+    "y": 405,
+    "z": 4,
+    "width": 610,
+    "height": 300,
+    "tabOrder": 4
+  },
+  "visual": {
+    "visualType": "lineChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Date"
+                    }
+                  },
+                  "Property": "Month Start"
+                }
+              },
+              "queryRef": "Date.Month Start",
+              "nativeQueryRef": "Month Start"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Observations"
+                    }
+                  },
+                  "Property": "Regular pay growth (%)"
+                }
+              },
+              "queryRef": "Observations.Regular pay growth (%)",
+              "nativeQueryRef": "Regular pay growth (%)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Observations"
+                    }
+                  },
+                  "Property": "Private regular pay growth (%)"
+                }
+              },
+              "queryRef": "Observations.Private regular pay growth (%)",
+              "nativeQueryRef": "Private regular pay growth (%)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "RealPay"
+                    }
+                  },
+                  "Property": "Real regular pay growth (%)"
+                }
+              },
+              "queryRef": "RealPay.Real regular pay growth (%)",
+              "nativeQueryRef": "Real regular pay growth (%)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "RealPay"
+                    }
+                  },
+                  "Property": "Real private regular pay growth (%)"
+                }
+              },
+              "queryRef": "RealPay.Real private regular pay growth (%)",
+              "nativeQueryRef": "Real private regular pay growth (%)"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true,
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Regular pay growth, nominal and real (%)'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

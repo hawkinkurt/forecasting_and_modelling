@@ -1,0 +1,105 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "753b30847190551094cf",
+  "position": {
+    "x": 20,
+    "y": 90,
+    "z": 1,
+    "width": 610,
+    "height": 300,
+    "tabOrder": 1
+  },
+  "visual": {
+    "visualType": "lineChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PsnbFiscalYear"
+                    }
+                  },
+                  "Property": "fy_month"
+                }
+              },
+              "queryRef": "PsnbFiscalYear.fy_month",
+              "nativeQueryRef": "fy_month"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PsnbFiscalYear"
+                    }
+                  },
+                  "Property": "Borrowing this fiscal year to date (£bn)"
+                }
+              },
+              "queryRef": "PsnbFiscalYear.Borrowing this fiscal year to date (£bn)",
+              "nativeQueryRef": "Borrowing this fiscal year to date (£bn)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PsnbFiscalYear"
+                    }
+                  },
+                  "Property": "Borrowing last fiscal year to date (£bn)"
+                }
+              },
+              "queryRef": "PsnbFiscalYear.Borrowing last fiscal year to date (£bn)",
+              "nativeQueryRef": "Borrowing last fiscal year to date (£bn)"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true,
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Borrowing, fiscal year to date (£bn)'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
