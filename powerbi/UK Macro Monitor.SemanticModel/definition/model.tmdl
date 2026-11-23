@@ -9,7 +9,7 @@ model Model
 
 annotation __PBI_TimeIntelligenceEnabled = 0
 
-annotation PBI_QueryOrder = ["ExportFolder", "DashboardStart", "Series", "Observations", "Changes", "RealPay", "YieldCurve", "RealPolicyRate", "PsnbFiscalYear", "Snapshot", "DataHealth"]
+annotation PBI_QueryOrder = ["ExportFolder", "DashboardStart", "Series", "Observations", "Changes", "RealPay", "YieldCurve", "RealPolicyRate", "PsnbFiscalYear", "Heatmap", "Snapshot", "DataHealth"]
 
 annotation PBI_ProTooling = ["DevMode"]
 
@@ -20,6 +20,7 @@ ref table RealPay
 ref table YieldCurve
 ref table RealPolicyRate
 ref table PsnbFiscalYear
+ref table Heatmap
 ref table Snapshot
 ref table DataHealth
 ref table Date

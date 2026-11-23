@@ -68,8 +68,10 @@ def q(name):
 # that should never be summed (shown row by row instead).
 TABLES = [
     dict(name="Series", file="series",
-         columns=["series_id", "name", "short_name", "section", "frequency", "units", "measure",
-                  "source", "next_release", "last_fetched"]),
+         columns=["series_id", "name", "short_name", "heatmap_label", "display_order", "section", "frequency",
+                  "units", "measure", "source", "next_release", "last_fetched"],
+         # Show series in series.csv order (by section) rather than alphabetically
+         sort_by={"short_name": "display_order", "heatmap_label": "display_order"}),
     dict(name="Observations", file="latest_observations",
          columns=["series_id", "period_date", "value", "vintage_date"], filter_dates=True, hide=True),
     dict(name="Changes", file="changes",
@@ -82,6 +84,9 @@ TABLES = [
          # Month label for the chart axis (Apr ... Mar), sorted by month_of_fy
          extra_steps=['AddMonth = Table.AddColumn(Filtered, "fy_month", each Date.ToText([period_date], "MMM"), type text)'],
          extra_columns=[("fy_month", "string")], sort_by={"fy_month": "month_of_fy"}),
+    dict(name="Heatmap", file="heatmap",
+         columns=["series_id", "period_date", "heatmap_basis", "reading", "reading_display", "percentile",
+                  "is_latest"], hide=True),
     dict(name="Snapshot", file="latest_snapshot", no_summarize=True),
     dict(name="DataHealth", file="data_health", no_summarize=True),
 ]
@@ -141,7 +146,8 @@ def table_tmdl(spec, measures=""):
     for c in keep:
         dtype = types[c]
         hidden = spec.get("hide") and c in ("series_id", "period_date", "vintage_date")
-        summarize = dtype in ("double", "int64") and not spec.get("no_summarize") and c != "month_of_fy"
+        summarize = (dtype in ("double", "int64") and not spec.get("no_summarize")
+                     and c not in ("month_of_fy", "display_order"))
         out.append(column_tmdl(spec["name"], c, dtype, is_date=(dtype == "dateTime"), summarize=summarize,
                                hidden=hidden, sort_by=spec.get("sort_by", {}).get(c)))
     for c, dtype in spec.get("extra_columns", []):
@@ -287,6 +293,44 @@ def real_rate_measures():
                         description="Monthly average Bank Rate minus CPI inflation (ex-post real policy rate).")
 
 
+def heatmap_measures():
+    # The same percentile bands and colours as the email's At a glance grid
+    bands = """
+    p >= 0.95, "#b35806",
+    p >= 0.85, "#f1a340",
+    p >= 0.65, "#fee0b6",
+    p >= 0.35, "#f7f7f7",
+    p >= 0.15, "#d1e5f0",
+    p >= 0.05, "#67a9cf",
+    "#2166ac\""""
+    return "".join([
+        measure_tmdl("Heatmap reading", """
+VAR LastMonth =
+    CALCULATE ( MAX ( Heatmap[period_date] ), REMOVEFILTERS ( Heatmap ), REMOVEFILTERS ( 'Date' ) )
+RETURN
+    IF ( MAX ( 'Date'[Month Start] ) > EDATE ( LastMonth, -12 ), AVERAGE ( Heatmap[reading_display] ) )""",
+                     fmt="#,0.0#", folder="Heatmap",
+                     description="The heatmap reading (scaled for display) for the last 12 months."),
+        measure_tmdl("Heatmap percentile", "AVERAGE ( Heatmap[percentile] )", fmt="0%", folder="Heatmap",
+                     description="Where the reading sits within the series' own last 10 years (0% lowest, 100% highest)."),
+        # SWITCH ( TRUE (), condition, result, ... ) returns the result of the first true condition
+        measure_tmdl("Heatmap colour", f"""
+VAR p = [Heatmap percentile]
+RETURN
+    IF ( NOT ISBLANK ( [Heatmap reading] ), SWITCH ( TRUE (), {bands} ) )""",
+                     fmt="General", folder="Heatmap",
+                     description="Cell background: blue for low, orange for high, against the series' last 10 years."),
+        measure_tmdl("Heatmap text colour", """
+VAR p = [Heatmap percentile]
+RETURN
+    IF ( NOT ISBLANK ( [Heatmap reading] ), IF ( p >= 0.95 || p < 0.05, "#ffffff", "#1f2328" ) )""",
+                     fmt="General", folder="Heatmap"),
+        measure_tmdl("Percentile now", """
+CALCULATE ( [Heatmap percentile], Heatmap[is_latest] = TRUE (), REMOVEFILTERS ( 'Date' ) )""",
+                     fmt="0%", folder="Heatmap", description="Percentile of the latest reading."),
+    ])
+
+
 def psnb_measures():
     return "".join([
         measure_tmdl("Borrowing this fiscal year to date (£bn)", """
@@ -321,6 +365,8 @@ RELATIONSHIPS = [
     ("YieldCurve", "period_date", "Date", "Date"),
     ("RealPolicyRate", "period_date", "Date", "Date"),
     ("PsnbFiscalYear", "period_date", "Date", "Date"),
+    ("Heatmap", "series_id", "Series", "series_id"),
+    ("Heatmap", "period_date", "Date", "Date"),
 ]
 
 
@@ -384,6 +430,7 @@ def build_model():
         "YieldCurve": yield_measures(),
         "RealPolicyRate": real_rate_measures(),
         "PsnbFiscalYear": psnb_measures(),
+        "Heatmap": heatmap_measures(),
     }
     names = []
     for spec in TABLES:
@@ -472,6 +519,32 @@ def table(x, y, w, h, title, entity, cols):
     return visual("tableEx", x, y, w, h, {"Values": [column(entity, c) for c in cols]}, title)
 
 
+def colour_from(entity, measure_name):
+    """A colour taken from a measure's value: 'conditional formatting by field value'."""
+    return {"solid": {"color": {"expr": measure(entity, measure_name)}}}
+
+
+def heatmap_matrix(x, y, w, h):
+    """Series down the side, months across, each cell coloured by its percentile."""
+    every_cell = {"data": [{"dataViewWildcard": {"matchingOption": 1}}], "metadata": "Heatmap.Heatmap reading"}
+    v = visual("pivotTable", x, y, w, h,
+                  {"Rows": [column("Series", "heatmap_label")],
+                   "Columns": [column("Date", "Month Start")],
+                   "Values": [m("Heatmap reading", "Heatmap")]},
+                  "At a glance: each reading against the series' own last 10 years (blue low, orange high)",
+                  objects={
+                      "values": [{"properties": {"backColor": colour_from("Heatmap", "Heatmap colour"),
+                                                 "fontColor": colour_from("Heatmap", "Heatmap text colour")},
+                                  "selector": every_cell}],
+                      "subTotals": [{"properties": {"rowSubtotals": lit("false"),
+                                                    "columnSubtotals": lit("false")}}],
+                  })
+    # Header text for the row labels and values, instead of the raw column names
+    v["visual"]["query"]["queryState"]["Rows"]["projections"][0]["displayName"] = "Series"
+    v["visual"]["query"]["queryState"]["Values"]["projections"][0]["displayName"] = "Reading"
+    return v
+
+
 def date_slicer():
     return visual("slicer", 940, 10, 320, 70, {"Values": [column("Date", "Date")]},
                   objects={"data": [{"properties": {"mode": lit("'Between'")}}]})
@@ -485,13 +558,17 @@ TOP = 90
 
 def pages():
     return [
+        # Overview answers one question: where is the economy now?
         ("Overview", [
-            card(20, 20, 236, 110, "GDP growth q/q (%)"),
-            card(268, 20, 236, 110, "CPI inflation (%)"),
-            card(516, 20, 236, 110, "Unemployment rate (%)"),
-            card(764, 20, 236, 110, "Bank Rate (%)"),
-            card(1012, 20, 248, 110, "10-year gilt yield (%)"),
-            table(20, 145, 1240, 560, "Latest data", "Snapshot",
+            card(20, 15, 236, 90, "GDP growth q/q (%)"),
+            card(268, 15, 236, 90, "CPI inflation (%)"),
+            card(516, 15, 236, 90, "Unemployment rate (%)"),
+            card(764, 15, 236, 90, "Bank Rate (%)"),
+            card(1012, 15, 248, 90, "10-year gilt yield (%)"),
+            heatmap_matrix(20, 115, 1240, 595),
+        ]),
+        ("Latest data", [
+            table(20, 20, 1240, 680, "Latest data for every series", "Snapshot",
                   ["section", "name", "latest_period", "latest_value", "change_period",
                    "change_yoy", "change_3m3m_annualised", "change_units"]),
         ]),

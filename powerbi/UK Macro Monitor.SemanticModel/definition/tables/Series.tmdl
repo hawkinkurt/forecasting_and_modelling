@@ -22,6 +22,24 @@ table Series
 		lineageTag: 80b3d467-325b-5be7-945c-080cabd85a15
 		summarizeBy: none
 		sourceColumn: short_name
+		sortByColumn: display_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column heatmap_label
+		dataType: string
+		lineageTag: a7dd749a-e2ff-5b5d-9d3b-d0cd4f53c6a8
+		summarizeBy: none
+		sourceColumn: heatmap_label
+		sortByColumn: display_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column display_order
+		dataType: int64
+		lineageTag: 97f04e11-1511-5530-a669-4383fc938421
+		summarizeBy: none
+		sourceColumn: display_order
 
 		annotation SummarizationSetBy = Automatic
 
@@ -92,7 +110,7 @@ table Series
 		source =
 				let
 				    Source = Parquet.Document(File.Contents(ExportFolder & "series.parquet"), [Compression=null, LegacyColumnNameEncoding=false, MaxDepth=null]),
-				    Selected = Table.SelectColumns(Source, {"series_id", "name", "short_name", "section", "frequency", "units", "measure", "source", "next_release", "last_fetched"})
+				    Selected = Table.SelectColumns(Source, {"series_id", "name", "short_name", "heatmap_label", "display_order", "section", "frequency", "units", "measure", "source", "next_release", "last_fetched"})
 				in
 				    Selected
 

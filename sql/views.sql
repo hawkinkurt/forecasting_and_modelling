@@ -376,3 +376,74 @@ FROM series AS s
 LEFT JOIN last_data AS d USING (series_id)
 LEFT JOIN last_fetch AS f USING (series_id)
 LEFT JOIN last_success AS k USING (series_id);
+
+-- ===========================================================================
+-- Heatmap: where each reading sits in its own recent history
+-- ===========================================================================
+
+-- For every series and month, the reading on its heatmap basis and its
+-- percentile within the series' last 10 years (0 = lowest, 1 = highest).
+--   heatmap_basis (series.csv):
+--     value  the reading itself (rates, and levels that do not trend)
+--     yoy    y/y growth, for levels that trend upwards (GDP, retail volumes),
+--            where ranking the level would always put today near the top
+--     sum12  12-month total, for seasonal flows (borrowing, trade balances)
+-- Percentile rank rather than a z-score: the window includes 2020, and the
+-- pandemic outliers would compress z-scores for every other reading.
+-- PERCENT_RANK() is a window function: its rank is computed over the rows that
+-- survive the WHERE clause, so the ranking uses exactly the 10-year window.
+CREATE OR REPLACE VIEW heatmap AS
+WITH base AS (
+    SELECT
+        a.series_id,
+        a.frequency,
+        s.heatmap_basis,
+        s.units,
+        s.frequency AS source_frequency,  -- analysis_series reports daily series as monthly
+        a.period_date,
+        a.value,
+        c.change_yoy,
+        SUM(a.value)   OVER twelve_months AS total_12m,
+        COUNT(a.value) OVER twelve_months AS n_12m
+    FROM analysis_series AS a
+    JOIN series AS s USING (series_id)
+    LEFT JOIN changes AS c USING (series_id, period_date)
+    WHERE a.is_complete
+    WINDOW twelve_months AS (PARTITION BY a.series_id ORDER BY a.period_date
+                             RANGE BETWEEN INTERVAL 11 MONTH PRECEDING AND CURRENT ROW)
+),
+metric AS (
+    SELECT
+        series_id,
+        frequency,
+        heatmap_basis,
+        units,
+        source_frequency,
+        period_date,
+        CASE heatmap_basis
+            WHEN 'yoy' THEN change_yoy
+            WHEN 'sum12' THEN CASE WHEN n_12m = 12 THEN total_12m END  -- only full 12-month totals
+            ELSE value
+        END AS reading
+    FROM base
+),
+windowed AS (
+    SELECT *, MAX(period_date) OVER (PARTITION BY series_id) AS latest_period
+    FROM metric
+    WHERE reading IS NOT NULL
+)
+SELECT
+    series_id,
+    frequency,
+    heatmap_basis,
+    period_date,
+    reading,
+    -- Scaled and rounded for display, matching series.heatmap_label: 12-month totals in GBP bn,
+    -- counts in 000s; 2 decimals for exchange rates and daily interest rates, 1 otherwise
+    ROUND(CASE WHEN heatmap_basis = 'sum12' OR units = 'number' THEN reading / 1000 ELSE reading END,
+          CASE WHEN units LIKE '% per GBP' OR (units = '%' AND source_frequency = 'D') THEN 2 ELSE 1 END)
+        AS reading_display,
+    PERCENT_RANK() OVER (PARTITION BY series_id ORDER BY reading) AS percentile,
+    period_date = latest_period AS is_latest
+FROM windowed
+WHERE period_date > latest_period - INTERVAL 10 YEAR;

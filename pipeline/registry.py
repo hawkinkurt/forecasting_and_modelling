@@ -43,6 +43,10 @@ def load_registry(path=REGISTRY_PATH):
         row["ons_release"] = (row.get("ons_release") or "").strip()
         # Optional: search phrase for the email's news button
         row["news_query"] = (row.get("news_query") or "").strip()
+        # Optional: what the heatmap ranks: the value, y/y growth, or a 12-month total
+        row["heatmap_basis"] = (row.get("heatmap_basis") or "value").strip()
+        if row["heatmap_basis"] not in ("value", "yoy", "sum12"):
+            problems.append(f"line {line_no}: heatmap_basis must be value, yoy or sum12")
 
         # Optional: multiply source values, e.g. -1 to flip a sign convention.
         try:
@@ -53,6 +57,18 @@ def load_registry(path=REGISTRY_PATH):
     if problems:
         raise ValueError("series.csv has problems:\n  " + "\n  ".join(problems))
     return rows
+
+
+HEATMAP_SUFFIX = {"yoy": "% y/y", "sum12": "12m total, £bn"}
+UNIT_SUFFIX = {"%": "%", "index": "index", "number": "000s", "thousands": "000s",
+               "USD per GBP": "$ per £", "EUR per GBP": "€ per £"}
+
+
+def heatmap_label(row):
+    """'Real GDP (£m)' with basis yoy -> 'Real GDP (% y/y)': what the heatmap row shows."""
+    base = row["short_name"].split(" (")[0]
+    suffix = HEATMAP_SUFFIX.get(row["heatmap_basis"]) or UNIT_SUFFIX.get(row["units"], row["units"])
+    return f"{base} ({suffix})"
 
 
 def sync_registry(con, rows):
@@ -66,11 +82,13 @@ def sync_registry(con, rows):
     for r in rows:
         con.execute("""
             INSERT INTO series (series_id, source, source_code, dataset, name, short_name,
-                                section, area, frequency, units, measure, ons_release, news_query)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                section, area, frequency, units, measure, ons_release, news_query,
+                                heatmap_basis)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (series_id) DO UPDATE SET
                 ons_release = excluded.ons_release,
                 news_query = excluded.news_query,
+                heatmap_basis = excluded.heatmap_basis,
                 source = excluded.source,
                 source_code = excluded.source_code,
                 dataset = excluded.dataset,
@@ -81,4 +99,8 @@ def sync_registry(con, rows):
                 frequency = excluded.frequency,
                 units = excluded.units,
                 measure = excluded.measure
-        """, [r[c] for c in COLUMNS] + [r["ons_release"] or None, r["news_query"] or None])
+        """, [r[c] for c in COLUMNS] + [r["ons_release"] or None, r["news_query"] or None, r["heatmap_basis"]])
+    # Derived display fields, shared by the email and Power BI
+    for position, r in enumerate(rows):
+        con.execute("UPDATE series SET heatmap_label = ?, display_order = ? WHERE series_id = ?",
+                    [heatmap_label(r), position, r["series_id"]])

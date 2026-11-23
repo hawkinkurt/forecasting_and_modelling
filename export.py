@@ -24,6 +24,7 @@ EXPORTS = {
     "real_policy_rate": "SELECT * FROM real_policy_rate ORDER BY period_date",
     "psnb_fiscal_year": "SELECT * FROM psnb_fiscal_year ORDER BY period_date",
     "revisions": "SELECT * FROM revisions ORDER BY series_id, period_date",
+    "heatmap": "SELECT * FROM heatmap ORDER BY series_id, period_date",
     # Dashboard summaries
     "latest_snapshot": "SELECT * FROM latest_snapshot ORDER BY section, series_id",
     "data_health": "SELECT * FROM data_health ORDER BY section, series_id",

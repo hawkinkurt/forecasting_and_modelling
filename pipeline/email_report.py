@@ -76,11 +76,11 @@ def series_info(con):
     rows = con.execute("""
         SELECT series_id, COALESCE(short_name, name), section, frequency, units, measure,
                COALESCE(next_release_at, next_release), last_release_at, ons_release,
-               last_release_url, news_query
+               last_release_url, news_query, heatmap_basis, heatmap_label
         FROM series
     """).fetchall()
     keys = ["series_id", "name", "section", "frequency", "units", "measure",
-            "next_release", "last_release", "ons_release", "page_url", "news_query"]
+            "next_release", "last_release", "ons_release", "page_url", "news_query", "heatmap_basis", "heatmap_label"]
     info = {r[0]: dict(zip(keys, r)) for r in rows}
     # Short names carry units for chart legends, e.g. "CPI inflation (%)"; the email shows units on the values
     for s in info.values():
@@ -153,6 +153,89 @@ def fmt_surprise(diff, basis, s):
     if basis != "value" or s["units"] == "%":
         return f"{diff * 100:+.0f}bp" if s["frequency"] == "D" else f"{diff:+.1f}pp"
     return f"{diff:+,.0f}" if s["units"] in ("£m", "thousands", "number") else f"{diff:+.1f}"
+
+
+# ---------------------------------------------------------------------------
+# Heatmap ("At a glance")
+# ---------------------------------------------------------------------------
+
+HEATMAP_MONTHS = 6
+# Diverging blue (low) to orange (high): colour-blind safe, and it says "unusual",
+# not "good" or "bad". (lower percentile bound, background, text colour)
+HEAT_BINS = [(0.95, "#b35806", "#fff"), (0.85, "#f1a340", "#1f2328"), (0.65, "#fee0b6", "#1f2328"),
+             (0.35, "#f7f7f7", "#1f2328"), (0.15, "#d1e5f0", "#1f2328"), (0.05, "#67a9cf", "#1f2328"),
+             (0.0, "#2166ac", "#fff")]
+
+
+def heat_colour(percentile):
+    for bound, background, text in HEAT_BINS:
+        if percentile >= bound:
+            return background, text
+    return HEAT_BINS[-1][1:]
+
+
+def fmt_heat(reading, basis, s):
+    """Compact cell text: the reading on its heatmap basis."""
+    if basis == "yoy":
+        return f"{reading:+.1f}"
+    if basis == "sum12":
+        return f"{reading / 1000:.0f}"
+    units = s["units"]
+    if units == "number":
+        return f"{reading / 1000:.1f}"  # shown in thousands, as the label says
+    if units == "thousands":
+        return f"{reading:.0f}"
+    if units.endswith("per GBP") or (units == "%" and s["frequency"] == "D"):
+        return f"{reading:.2f}"
+    return f"{reading:.1f}"
+
+
+def ordinal(n):
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+def build_heatmap(con, info, order):
+    """Rows of the At a glance grid: the last HEATMAP_MONTHS months for every
+    series, coloured by percentile within its own last 10 years."""
+    data = con.execute("""
+        SELECT series_id, period_date, reading, percentile, is_latest FROM heatmap
+        WHERE period_date >= (SELECT max(period_date) FROM heatmap) - INTERVAL 14 MONTH
+    """).fetchall()
+    last_month = max(p for _, p, *_ in data)
+    months = [date(last_month.year - (last_month.month - 1 - k < 0), (last_month.month - 1 - k) % 12 + 1, 1)
+              for k in reversed(range(HEATMAP_MONTHS))]
+
+    by_series = {}
+    for sid, period, reading, pct, is_latest in data:
+        cells = by_series.setdefault(sid, {"cells": {}, "latest": None})
+        span = 3 if info[sid]["frequency"] == "Q" else 1  # a quarter fills its three months
+        for k in range(span):
+            month = date(period.year + (period.month - 1 + k) // 12, (period.month - 1 + k) % 12 + 1, 1)
+            cells["cells"][month] = (reading, pct)
+        if is_latest:
+            cells["latest"] = pct
+
+    rows = []
+    for sid in sorted(by_series, key=order):
+        s = info[sid]
+        basis = s["heatmap_basis"]
+        # Shared with Power BI: "Real GDP (% y/y)" -> label and units suffix
+        label, _, suffix = (s["heatmap_label"] or s["name"]).partition(" (")
+        suffix = suffix.rstrip(")")
+        cells = []
+        for month in months:
+            if month in by_series[sid]["cells"]:
+                reading, pct = by_series[sid]["cells"][month]
+                background, text = heat_colour(pct)
+                cells.append((fmt_heat(reading, basis, s), background, text))
+            else:
+                cells.append(None)
+        latest = by_series[sid]["latest"]
+        rows.append(dict(section=s["section"], label=label, suffix=suffix, cells=cells,
+                         percentile=ordinal(round(latest * 100)) if latest is not None else "-",
+                         page_url=s["page_url"]))
+    return dict(months=months, rows=rows)
 
 
 def news_url(query):
@@ -398,6 +481,9 @@ def build_report(con, results, run_started, today=None, consensus_captured=(), c
     def sort_key(order):
         return lambda r: (order.index(r["section"]) if r["section"] in order else 99, position.get(r["sid"], 999))
 
+    heatmap = build_heatmap(con, info, lambda sid: (section_order.index(info[sid]["section"])
+                                                    if info[sid]["section"] in section_order else 99,
+                                                    position.get(sid, 999)))
     releases.sort(key=sort_key(section_order))
     markets.sort(key=sort_key(market_order))
     all_data.sort(key=sort_key(section_order))
@@ -409,7 +495,7 @@ def build_report(con, results, run_started, today=None, consensus_captured=(), c
                      event=c["event"], file=c["file"])
                 for c in consensus_captured]
 
-    return dict(today=today, releases=releases, markets=markets, all_data=all_data,
+    return dict(today=today, heatmap=heatmap, releases=releases, markets=markets, all_data=all_data,
                 revisions=revision_lines, older_revisions=older_revisions,
                 coming_up=coming_up, captured=captured, notes=list(consensus_notes),
                 problems=problems, images=images)
@@ -532,6 +618,43 @@ def render_html(report, image_src):
              f'Release times are UK time. Consensus: <a href="{CALENDAR_URL}">Bloomberg economic calendar</a>. '
              f'Series names link to the ONS release page.<br>Trend lines: {legend}.</div>']
 
+    # 0. At a glance: every series against its own last 10 years
+    hm = report.get("heatmap")
+    if hm and hm["rows"]:
+        parts.append(h2("At a glance"))
+        key = "".join(f'<td style="background:{bg};color:{fg};padding:2px 6px;font-size:11px">{label}</td>'
+                      for label, (bg, fg) in [("lowest 5%", heat_colour(0.0)), ("low", heat_colour(0.1)),
+                                              ("", heat_colour(0.2)), ("middle", heat_colour(0.5)),
+                                              ("", heat_colour(0.7)), ("high", heat_colour(0.9)),
+                                              ("highest 5%", heat_colour(0.99))])
+        parts.append(f'<p style="font-size:12px;color:{c["muted"]};margin:0 0 6px 0">Each reading against '
+                     f'that series\' own last 10 years. Growth rates for trending series, 12-month totals for '
+                     f'borrowing and trade. Colour shows how unusual a reading is, not whether it is good.</p>'
+                     f'<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin:0 0 10px 0">'
+                     f'<tr>{key}</tr></table>')
+        # Compact markup: this grid has ~170 cells, and Gmail clips emails over ~100KB of HTML, so
+        # padding, font size and alignment are set once on the table (cellpadding, inherited font
+        # size) and each cell only carries align and bgcolor, which email clients have long supported.
+        muted = c["muted"]
+        head = "".join(f'<th align="right" style="color:{muted}">{m:%b %y}</th>' for m in hm["months"])
+        body, section = "", None
+        for r in hm["rows"]:
+            if r["section"] != section:
+                section = r["section"]
+                body += (f'<tr><td colspan="{len(hm["months"]) + 2}" style="padding-top:8px;font-size:11px;'
+                         f'font-weight:600;color:{muted}">{esc(section)}</td></tr>')
+            label = esc(r["label"])
+            if r["page_url"]:
+                label = f'<a href="{esc(r["page_url"])}" style="color:{c["text"]}">{label}</a>'
+            tds = "".join((f'<td align="right" bgcolor="{x[1]}" style="color:#fff">{esc(x[0])}</td>' if x[2] == "#fff"
+                           else f'<td align="right" bgcolor="{x[1]}">{esc(x[0])}</td>') if x else "<td></td>"
+                          for x in r["cells"])
+            body += (f'<tr><td nowrap>{label} <span style="color:{muted};font-size:11px">{esc(r["suffix"])}'
+                     f'</span></td>{tds}<td align="right" style="color:{muted}">{r["percentile"]}</td></tr>')
+        parts.append(f'<table cellspacing="1" cellpadding="4" style="font-size:12px;margin:0 0 12px 0">'
+                     f'<tr><th></th>{head}<th align="right" style="color:{muted}">percentile now</th>'
+                     f'</tr>{body}</table>')
+
     # 1. New releases
     parts.append(h2("New releases"))
     if report["releases"]:
@@ -607,6 +730,13 @@ def render_html(report, image_src):
 
 def render_text(report):
     lines = [f"UK macro monitor, {report['today']:%A %d %B %Y}", ""]
+    hm = report.get("heatmap")
+    if hm and hm["rows"]:
+        lines.append("AT A GLANCE (latest reading, percentile within its last 10 years)")
+        for r in hm["rows"]:
+            latest = next((x[0] for x in reversed(r["cells"]) if x), "-")
+            lines.append(f"  {r['label']} ({r['suffix']}): {latest}, {r['percentile']}")
+        lines.append("")
     lines.append("NEW RELEASES")
     for r in report["releases"] or []:
         lines.append(f"  {r['name']}: {r['value']} in {r['period']} (previous {r['previous']}, "

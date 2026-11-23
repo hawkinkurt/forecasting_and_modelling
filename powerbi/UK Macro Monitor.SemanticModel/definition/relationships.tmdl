@@ -36,3 +36,12 @@ relationship 96a2d16b-73ee-588e-a1cc-f2cfbffc5b66
 	fromColumn: PsnbFiscalYear.period_date
 	toColumn: Date.Date
 
+relationship a3de6f96-da74-59ab-ae50-337aa3131c75
+	fromColumn: Heatmap.series_id
+	toColumn: Series.series_id
+
+relationship c4b8d182-69cf-5143-8b20-d2b0fba6b79e
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Heatmap.period_date
+	toColumn: Date.Date
+

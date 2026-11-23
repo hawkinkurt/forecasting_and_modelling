@@ -1,0 +1,116 @@
+table Heatmap
+	lineageTag: e855320b-9580-578e-a384-b7b7d0f89ec2
+
+	/// The heatmap reading (scaled for display) for the last 12 months.
+	measure 'Heatmap reading' =
+			VAR LastMonth =
+			    CALCULATE ( MAX ( Heatmap[period_date] ), REMOVEFILTERS ( Heatmap ), REMOVEFILTERS ( 'Date' ) )
+			RETURN
+			    IF ( MAX ( 'Date'[Month Start] ) > EDATE ( LastMonth, -12 ), AVERAGE ( Heatmap[reading_display] ) )
+		formatString: #,0.0#
+		displayFolder: Heatmap
+		lineageTag: d8fd16ce-7d1f-5718-bcf9-295dcc3798d7
+	/// Where the reading sits within the series' own last 10 years (0% lowest, 100% highest).
+	measure 'Heatmap percentile' = AVERAGE ( Heatmap[percentile] )
+		formatString: 0%
+		displayFolder: Heatmap
+		lineageTag: 9b2c8a74-3cd0-58c3-8117-5b82199e79a2
+	/// Cell background: blue for low, orange for high, against the series' last 10 years.
+	measure 'Heatmap colour' =
+			VAR p = [Heatmap percentile]
+			RETURN
+			    IF ( NOT ISBLANK ( [Heatmap reading] ), SWITCH ( TRUE (), 
+			    p >= 0.95, "#b35806",
+			    p >= 0.85, "#f1a340",
+			    p >= 0.65, "#fee0b6",
+			    p >= 0.35, "#f7f7f7",
+			    p >= 0.15, "#d1e5f0",
+			    p >= 0.05, "#67a9cf",
+			    "#2166ac" ) )
+		formatString: General
+		displayFolder: Heatmap
+		lineageTag: ea4c4ea6-bd7f-5f60-b59d-2c5a2b58bcbb
+	measure 'Heatmap text colour' =
+			VAR p = [Heatmap percentile]
+			RETURN
+			    IF ( NOT ISBLANK ( [Heatmap reading] ), IF ( p >= 0.95 || p < 0.05, "#ffffff", "#1f2328" ) )
+		formatString: General
+		displayFolder: Heatmap
+		lineageTag: 59d969d7-13ae-5f43-b0a7-362fefb8cd43
+	/// Percentile of the latest reading.
+	measure 'Percentile now' = CALCULATE ( [Heatmap percentile], Heatmap[is_latest] = TRUE (), REMOVEFILTERS ( 'Date' ) )
+		formatString: 0%
+		displayFolder: Heatmap
+		lineageTag: 316bc9fa-629e-5f72-8eea-86005fda7f94
+
+	column series_id
+		dataType: string
+		isHidden
+		lineageTag: f0c4e70b-9c40-5a0e-9181-a90b176d3822
+		summarizeBy: none
+		sourceColumn: series_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column period_date
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy
+		lineageTag: 16af8020-33d2-56f8-93be-a5cc9a79d2d1
+		summarizeBy: none
+		sourceColumn: period_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column heatmap_basis
+		dataType: string
+		lineageTag: 1a0d64c0-2fde-5513-b845-175fcbfc827e
+		summarizeBy: none
+		sourceColumn: heatmap_basis
+
+		annotation SummarizationSetBy = Automatic
+
+	column reading
+		dataType: double
+		lineageTag: bc5b4099-bc7e-5e85-b92b-ae58cdd8c610
+		summarizeBy: sum
+		sourceColumn: reading
+
+		annotation SummarizationSetBy = Automatic
+
+	column reading_display
+		dataType: double
+		lineageTag: a4e090f3-a5dd-5fa0-8d7f-ea9e3843f4b5
+		summarizeBy: sum
+		sourceColumn: reading_display
+
+		annotation SummarizationSetBy = Automatic
+
+	column percentile
+		dataType: double
+		lineageTag: 4e48ebfb-2ccb-5783-9682-8772911c5ae3
+		summarizeBy: sum
+		sourceColumn: percentile
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_latest
+		dataType: boolean
+		lineageTag: 7cbca8a6-362c-571c-a07b-f0014f4ea60d
+		summarizeBy: none
+		sourceColumn: is_latest
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Heatmap = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(ExportFolder & "heatmap.parquet"), [Compression=null, LegacyColumnNameEncoding=false, MaxDepth=null]),
+				    Selected = Table.SelectColumns(Source, {"series_id", "period_date", "heatmap_basis", "reading", "reading_display", "percentile", "is_latest"})
+				in
+				    Selected
+
+	annotation PBI_ResultType = Table

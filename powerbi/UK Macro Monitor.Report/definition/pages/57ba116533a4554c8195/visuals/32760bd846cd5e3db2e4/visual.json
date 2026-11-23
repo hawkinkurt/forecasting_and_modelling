@@ -3,135 +3,145 @@
   "name": "32760bd846cd5e3db2e4",
   "position": {
     "x": 20,
-    "y": 145,
+    "y": 115,
     "z": 5,
     "width": 1240,
-    "height": 560,
+    "height": 595,
     "tabOrder": 5
   },
   "visual": {
-    "visualType": "tableEx",
+    "visualType": "pivotTable",
     "query": {
       "queryState": {
-        "Values": {
+        "Rows": {
           "projections": [
             {
               "field": {
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Snapshot"
+                      "Entity": "Series"
                     }
                   },
-                  "Property": "section"
+                  "Property": "heatmap_label"
                 }
               },
-              "queryRef": "Snapshot.section",
-              "nativeQueryRef": "section"
-            },
+              "queryRef": "Series.heatmap_label",
+              "nativeQueryRef": "heatmap_label",
+              "displayName": "Series"
+            }
+          ]
+        },
+        "Columns": {
+          "projections": [
             {
               "field": {
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Snapshot"
+                      "Entity": "Date"
                     }
                   },
-                  "Property": "name"
+                  "Property": "Month Start"
                 }
               },
-              "queryRef": "Snapshot.name",
-              "nativeQueryRef": "name"
-            },
+              "queryRef": "Date.Month Start",
+              "nativeQueryRef": "Month Start"
+            }
+          ]
+        },
+        "Values": {
+          "projections": [
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Snapshot"
+                      "Entity": "Heatmap"
                     }
                   },
-                  "Property": "latest_period"
+                  "Property": "Heatmap reading"
                 }
               },
-              "queryRef": "Snapshot.latest_period",
-              "nativeQueryRef": "latest_period"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Snapshot"
-                    }
-                  },
-                  "Property": "latest_value"
-                }
-              },
-              "queryRef": "Snapshot.latest_value",
-              "nativeQueryRef": "latest_value"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Snapshot"
-                    }
-                  },
-                  "Property": "change_period"
-                }
-              },
-              "queryRef": "Snapshot.change_period",
-              "nativeQueryRef": "change_period"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Snapshot"
-                    }
-                  },
-                  "Property": "change_yoy"
-                }
-              },
-              "queryRef": "Snapshot.change_yoy",
-              "nativeQueryRef": "change_yoy"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Snapshot"
-                    }
-                  },
-                  "Property": "change_3m3m_annualised"
-                }
-              },
-              "queryRef": "Snapshot.change_3m3m_annualised",
-              "nativeQueryRef": "change_3m3m_annualised"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Snapshot"
-                    }
-                  },
-                  "Property": "change_units"
-                }
-              },
-              "queryRef": "Snapshot.change_units",
-              "nativeQueryRef": "change_units"
+              "queryRef": "Heatmap.Heatmap reading",
+              "nativeQueryRef": "Heatmap reading",
+              "displayName": "Reading"
             }
           ]
         }
       }
     },
     "drillFilterOtherVisuals": true,
+    "objects": {
+      "values": [
+        {
+          "properties": {
+            "backColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Measure": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "Heatmap"
+                        }
+                      },
+                      "Property": "Heatmap colour"
+                    }
+                  }
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Measure": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "Heatmap"
+                        }
+                      },
+                      "Property": "Heatmap text colour"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 1
+                }
+              }
+            ],
+            "metadata": "Heatmap.Heatmap reading"
+          }
+        }
+      ],
+      "subTotals": [
+        {
+          "properties": {
+            "rowSubtotals": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "columnSubtotals": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
     "visualContainerObjects": {
       "title": [
         {
@@ -146,7 +156,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Latest data'"
+                  "Value": "'At a glance: each reading against the series'' own last 10 years (blue low, orange high)'"
                 }
               }
             }
