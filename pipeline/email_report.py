@@ -170,39 +170,56 @@ def build_report(con, results, run_started, today=None):
         else:
             revisions.setdefault(sid, []).append((period, old, new))
 
-    images = {}  # cid key -> png bytes
+    images = {}  # cid key -> png bytes, one sparkline per series, reused across sections
 
     def add_spark(sid, freq):
-        since = today - timedelta(days=365 if freq == "D" else 5 * 365)
-        png = sparkline(history(con, sid, since))
-        if png:
+        if sid not in images:
+            since = today - timedelta(days=365 if freq == "D" else 5 * 365)
+            png = sparkline(history(con, sid, since))
+            if not png:
+                return None
             images[sid] = png
-            return sid
-        return None
+        return sid
 
-    releases, markets = [], []
-    for sid in new_periods:
+    def release_row(sid):
+        """Latest position of a monthly or quarterly series."""
         s = info[sid]
         two = latest_two(con, sid)
         if not two:
-            continue
+            return None
         period, value = two[0]
         previous = two[1][1] if len(two) > 1 else None
-        if s["frequency"] == "D":
-            month_ago = value_on_or_before(con, sid, period - timedelta(days=30))
-            markets.append(dict(
-                sid=sid, name=s["name"], section=s["section"], period=_fmt_period(period, "D"),
-                value=_fmt(value, s["units"], "D"),
-                change_1d=fmt_change(change_between(value, previous, s["measure"]), s["measure"], "D"),
-                change_1m=fmt_change(change_between(value, month_ago, s["measure"]), s["measure"], "D"),
-                spark=add_spark(sid, "D")))
-        else:
-            releases.append(dict(
-                sid=sid, name=s["name"], section=s["section"], period=_fmt_period(period, s["frequency"]),
-                value=_fmt(value, s["units"], s["frequency"]),
-                previous=_fmt(previous, s["units"], s["frequency"]),
-                yoy=fmt_change(yoy_change(con, sid, period), s["measure"], s["frequency"]),
-                next_release=s["next_release"], spark=add_spark(sid, s["frequency"])))
+        return dict(
+            sid=sid, name=s["name"], section=s["section"], period=_fmt_period(period, s["frequency"]),
+            value=_fmt(value, s["units"], s["frequency"]),
+            previous=_fmt(previous, s["units"], s["frequency"]),
+            yoy=fmt_change(yoy_change(con, sid, period), s["measure"], s["frequency"]),
+            next_release=s["next_release"], is_new=sid in new_periods,
+            spark=add_spark(sid, s["frequency"]))
+
+    def market_row(sid):
+        """Latest position of a daily series, with 1-day and 1-month changes."""
+        s = info[sid]
+        two = latest_two(con, sid)
+        if not two:
+            return None
+        period, value = two[0]
+        previous = two[1][1] if len(two) > 1 else None
+        month_ago = value_on_or_before(con, sid, period - timedelta(days=30))
+        return dict(
+            sid=sid, name=s["name"], section=s["section"], period=_fmt_period(period, "D"),
+            value=_fmt(value, s["units"], "D"),
+            change_1d=fmt_change(change_between(value, previous, s["measure"]), s["measure"], "D"),
+            change_1m=fmt_change(change_between(value, month_ago, s["measure"]), s["measure"], "D"),
+            spark=add_spark(sid, "D"))
+
+    daily = [sid for sid, s in info.items() if s["frequency"] == "D"]
+    periodic = [sid for sid, s in info.items() if s["frequency"] != "D"]
+    # New releases: monthly/quarterly series with a new period this run
+    releases = [r for r in (release_row(sid) for sid in periodic if sid in new_periods) if r]
+    # Markets and the full data section always show every series, updated today or not
+    markets = [r for r in (market_row(sid) for sid in daily) if r]
+    all_data = [r for r in (release_row(sid) for sid in periodic) if r]
 
     revision_lines, older_revisions = [], 0
     for sid, revs in revisions.items():
@@ -242,9 +259,11 @@ def build_report(con, results, run_started, today=None):
 
     releases.sort(key=sort_key(section_order))
     markets.sort(key=sort_key(market_order))
+    all_data.sort(key=sort_key(section_order))
 
-    return dict(today=today, releases=releases, markets=markets, revisions=revision_lines,
-                older_revisions=older_revisions, coming_up=coming_up, problems=problems, images=images)
+    return dict(today=today, releases=releases, markets=markets, all_data=all_data,
+                revisions=revision_lines, older_revisions=older_revisions,
+                coming_up=coming_up, problems=problems, images=images)
 
 
 def subject_line(report):
@@ -296,21 +315,42 @@ def render_html(report, image_src):
         return (f'<h2 style="font-size:15px;margin:24px 0 8px 0;color:{c["text"]};'
                 f'border-bottom:2px solid {c["text"]};padding-bottom:4px">{text}</h2>')
 
+    def h3(text):
+        return f'<h3 style="font-size:13px;margin:14px 0 4px 0;color:{c["muted"]}">{text}</h3>'
+
+    def new_badge(r):
+        return (f' <span style="font-size:10px;font-weight:600;color:#fff;background:{c["line"]};'
+                f'border-radius:3px;padding:1px 4px">NEW</span>') if r.get("is_new") else ""
+
+    release_headers = ["Series", "Period", "Latest", "Previous", "vs year ago", "Last 5 years", "Next release"]
+    release_align = ["left", "left", "right", "right", "right", "left", "left"]
+
+    def release_rows(rows, badge=False):
+        return [[esc(r["name"]) + (new_badge(r) if badge else ""), r["period"], f'<b>{r["value"]}</b>',
+                 r["previous"], _coloured(r["yoy"]), img(r["spark"]),
+                 f'{r["next_release"]:%d %b}' if r["next_release"] else "-"] for r in rows]
+
     parts = [f'<div style="font-family:Segoe UI,Helvetica,Arial,sans-serif;color:{c["text"]};max-width:820px">',
              f'<h1 style="font-size:20px;margin:0 0 4px 0">UK macro monitor</h1>',
              f'<div style="color:{c["muted"]};font-size:13px">{report["today"]:%A %d %B %Y}</div>']
 
+    # 1. New releases
     parts.append(h2("New releases"))
     if report["releases"]:
-        parts.append(_table(
-            ["Series", "Period", "Latest", "Previous", "vs year ago", "Last 5 years", "Next release"],
-            [[esc(r["name"]), r["period"], f'<b>{r["value"]}</b>', r["previous"], _coloured(r["yoy"]),
-              img(r["spark"]), f'{r["next_release"]:%d %b}' if r["next_release"] else "-"]
-             for r in report["releases"]],
-            ["left", "left", "right", "right", "right", "left", "left"]))
+        parts.append(_table(release_headers, release_rows(report["releases"]), release_align))
     else:
         parts.append(f'<p style="font-size:13px;color:{c["muted"]}">No new monthly or quarterly releases.</p>')
 
+    # 2. Coming up
+    parts.append(h2("Coming up (next 7 days)"))
+    if report["coming_up"]:
+        parts.append(_table(["Date", "Releases"],
+                            [[f"{d:%a %d %b}", esc(", ".join(names))] for d, names in report["coming_up"]],
+                            ["left", "left"]))
+    else:
+        parts.append(f'<p style="font-size:13px;color:{c["muted"]}">No scheduled releases.</p>')
+
+    # 3. Markets (every daily series)
     if report["markets"]:
         parts.append(h2("Markets"))
         parts.append(_table(
@@ -319,6 +359,20 @@ def render_html(report, image_src):
               _coloured(r["change_1m"]), img(r["spark"])] for r in report["markets"]],
             ["left", "left", "right", "right", "right", "left"]))
 
+    # 4. Every monthly and quarterly series, by section
+    if report["all_data"]:
+        parts.append(h2("All UK data"))
+        sections = []
+        for r in report["all_data"]:
+            if r["section"] not in sections:
+                sections.append(r["section"])
+        for section in sections:
+            parts.append(h3(esc(section)))
+            parts.append(_table(release_headers,
+                                release_rows([r for r in report["all_data"] if r["section"] == section], badge=True),
+                                release_align))
+
+    # 5. Revisions and problems
     if report["revisions"] or report["older_revisions"]:
         parts.append(h2("Revisions"))
         if report["revisions"]:
@@ -329,14 +383,6 @@ def render_html(report, image_src):
         if report["older_revisions"]:
             parts.append(f'<p style="font-size:12px;color:{c["muted"]}">Plus {report["older_revisions"]:,} '
                          f'revisions to older periods (typically seasonal adjustment).</p>')
-
-    parts.append(h2("Coming up (next 7 days)"))
-    if report["coming_up"]:
-        parts.append(_table(["Date", "Releases"],
-                            [[f"{d:%a %d %b}", esc(", ".join(names))] for d, names in report["coming_up"]],
-                            ["left", "left"]))
-    else:
-        parts.append(f'<p style="font-size:13px;color:{c["muted"]}">No scheduled releases.</p>')
 
     if report["problems"]:
         parts.append(h2("Problems"))
@@ -356,19 +402,28 @@ def render_text(report):
         lines.append(f"  {r['name']}: {r['value']} in {r['period']} (previous {r['previous']}, vs year ago {r['yoy']})")
     if not report["releases"]:
         lines.append("  None")
-    if report["markets"]:
-        lines += ["", "MARKETS"]
-        for r in report["markets"]:
-            lines.append(f"  {r['name']}: {r['value']} on {r['period']} (1 day {r['change_1d']}, 1 month {r['change_1m']})")
-    if report["revisions"]:
-        lines += ["", "REVISIONS"]
-        for r in report["revisions"]:
-            lines.append(f"  {r['name']} {r['period']}: {r['old']} -> {r['new']}")
     lines += ["", "COMING UP"]
     for d, names in report["coming_up"]:
         lines.append(f"  {d:%a %d %b}: {', '.join(names)}")
     if not report["coming_up"]:
         lines.append("  None")
+    if report["markets"]:
+        lines += ["", "MARKETS"]
+        for r in report["markets"]:
+            lines.append(f"  {r['name']}: {r['value']} on {r['period']} (1 day {r['change_1d']}, 1 month {r['change_1m']})")
+    if report["all_data"]:
+        lines += ["", "ALL UK DATA"]
+        section = None
+        for r in report["all_data"]:
+            if r["section"] != section:
+                section = r["section"]
+                lines.append(f"  {section}")
+            tag = " [NEW]" if r["is_new"] else ""
+            lines.append(f"    {r['name']}{tag}: {r['value']} in {r['period']} (previous {r['previous']}, vs year ago {r['yoy']})")
+    if report["revisions"]:
+        lines += ["", "REVISIONS"]
+        for r in report["revisions"]:
+            lines.append(f"  {r['name']} {r['period']}: {r['old']} -> {r['new']}")
     if report["problems"]:
         lines += ["", "PROBLEMS"]
         for p in report["problems"]:
