@@ -58,6 +58,12 @@ python -m venv .venv
 
 Without email set up, the run still works and saves the report to `exports/last_report.html`. Use `run.py --no-email` to skip sending.
 
+## Release times and consensus
+
+Each ONS series carries its exact last and next release time (UK time) from the ONS release calendar.
+
+Market consensus figures go in `consensus_inbox/consensus.csv` (not committed). The `/consensus` command in Claude Code reads screenshots of an economic calendar into that file, checking each figure against the series list. The email then shows the consensus against upcoming releases and the surprise (actual minus consensus) once the data is out.
+
 ## Email report
 
 The report is sent through the Gmail API over HTTPS, with send-only permission (`gmail.send`): the script cannot read the mailbox. One-off setup:
