@@ -43,17 +43,23 @@ def _search(release_name, release_type, sort):
                                         "release-type": release_type, "sort": sort}, timeout=30)
     response.raise_for_status()
     time.sleep(0.2)
-    return [(x["description"]["title"], x["description"]["release_date"], x["description"].get("cancelled"))
+    return [(x["description"]["title"], x["description"]["release_date"], x["description"].get("cancelled"),
+             x.get("uri"))
             for x in response.json().get("releases", [])]
 
 
 def release_times(release_name):
-    """(last published, next upcoming) for one release, as London datetimes or None."""
-    published = [_to_london(d) for title, d, _ in _search(release_name, "type-published", "release_date_desc")
-                 if _is_match(title, release_name)]
-    upcoming = [_to_london(d) for title, d, cancelled in _search(release_name, "type-upcoming", "release_date_asc")
+    """(last published, next upcoming, URL of the last published release page) for
+    one release. Times are London datetimes; any item can be None."""
+    published = sorted(((_to_london(d), uri) for title, d, _, uri in
+                        _search(release_name, "type-published", "release_date_desc")
+                        if _is_match(title, release_name)), reverse=True)
+    upcoming = [_to_london(d) for title, d, cancelled, _ in
+                _search(release_name, "type-upcoming", "release_date_asc")
                 if _is_match(title, release_name) and not cancelled]
-    return (max(published) if published else None, min(upcoming) if upcoming else None)
+    last, last_uri = published[0] if published else (None, None)
+    page = f"https://www.ons.gov.uk{last_uri}" if last_uri else None
+    return last, (min(upcoming) if upcoming else None), page
 
 
 def update_release_times(con, registry):
@@ -65,7 +71,7 @@ def update_release_times(con, registry):
     for name in names:
         try:
             times[name] = release_times(name)
-            if times[name] == (None, None):
+            if times[name][:2] == (None, None):
                 problems.append(f"no releases found in the ONS calendar for '{name}'")
         except Exception as e:
             problems.append(f"release calendar lookup failed for '{name}': {type(e).__name__}: {e}")
@@ -74,8 +80,12 @@ def update_release_times(con, registry):
         found = [times[n] for n in row["ons_release"].split("|") if n in times]
         if not found:
             continue
-        lasts = [t[0] for t in found if t[0]]
+        lasts = [(t[0], t[2]) for t in found if t[0]]
         nexts = [t[1] for t in found if t[1]]
-        con.execute("UPDATE series SET last_release_at = ?, next_release_at = ? WHERE series_id = ?",
-                    [max(lasts) if lasts else None, min(nexts) if nexts else None, row["series_id"]])
+        # The most recent release, and the link to its page on the ONS website
+        last_at, last_url = max(lasts) if lasts else (None, None)
+        con.execute("""
+            UPDATE series SET last_release_at = ?, next_release_at = ?, last_release_url = ?
+            WHERE series_id = ?
+        """, [last_at, min(nexts) if nexts else None, last_url, row["series_id"]])
     return problems

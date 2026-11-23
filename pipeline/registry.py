@@ -41,6 +41,8 @@ def load_registry(path=REGISTRY_PATH):
 
         # Optional: the ONS release(s) that publish the series, "|"-separated
         row["ons_release"] = (row.get("ons_release") or "").strip()
+        # Optional: search phrase for the email's news button
+        row["news_query"] = (row.get("news_query") or "").strip()
 
         # Optional: multiply source values, e.g. -1 to flip a sign convention.
         try:
@@ -64,10 +66,11 @@ def sync_registry(con, rows):
     for r in rows:
         con.execute("""
             INSERT INTO series (series_id, source, source_code, dataset, name, short_name,
-                                section, area, frequency, units, measure, ons_release)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                section, area, frequency, units, measure, ons_release, news_query)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (series_id) DO UPDATE SET
                 ons_release = excluded.ons_release,
+                news_query = excluded.news_query,
                 source = excluded.source,
                 source_code = excluded.source_code,
                 dataset = excluded.dataset,
@@ -78,4 +81,4 @@ def sync_registry(con, rows):
                 frequency = excluded.frequency,
                 units = excluded.units,
                 measure = excluded.measure
-        """, [r[c] for c in COLUMNS] + [r["ons_release"] or None])
+        """, [r[c] for c in COLUMNS] + [r["ons_release"] or None, r["news_query"] or None])

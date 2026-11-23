@@ -20,6 +20,8 @@ ALTER TABLE series ADD COLUMN IF NOT EXISTS short_name VARCHAR;  -- for charts, 
 ALTER TABLE series ADD COLUMN IF NOT EXISTS ons_release VARCHAR;
 ALTER TABLE series ADD COLUMN IF NOT EXISTS last_release_at TIMESTAMP;
 ALTER TABLE series ADD COLUMN IF NOT EXISTS next_release_at TIMESTAMP;
+ALTER TABLE series ADD COLUMN IF NOT EXISTS last_release_url VARCHAR;  -- ONS page of the latest release
+ALTER TABLE series ADD COLUMN IF NOT EXISTS news_query VARCHAR;        -- Google News search phrase
 
 -- Market consensus for upcoming releases, read from screenshots of an economic
 -- calendar. basis says what the figure measures: the published value itself,

@@ -21,6 +21,7 @@ import os
 from datetime import date, datetime, timedelta
 from email.message import EmailMessage
 from email.utils import make_msgid
+from urllib.parse import urlencode
 
 import matplotlib
 
@@ -74,11 +75,12 @@ def changes_this_run(con, run_started):
 def series_info(con):
     rows = con.execute("""
         SELECT series_id, COALESCE(short_name, name), section, frequency, units, measure,
-               COALESCE(next_release_at, next_release), last_release_at, ons_release
+               COALESCE(next_release_at, next_release), last_release_at, ons_release,
+               last_release_url, news_query
         FROM series
     """).fetchall()
     keys = ["series_id", "name", "section", "frequency", "units", "measure",
-            "next_release", "last_release", "ons_release"]
+            "next_release", "last_release", "ons_release", "page_url", "news_query"]
     info = {r[0]: dict(zip(keys, r)) for r in rows}
     # Short names carry units for chart legends, e.g. "CPI inflation (%)"; the email shows units on the values
     for s in info.values():
@@ -153,6 +155,14 @@ def fmt_surprise(diff, basis, s):
     return f"{diff:+,.0f}" if s["units"] in ("£m", "thousands", "number") else f"{diff:+.1f}"
 
 
+def news_url(query):
+    """Google News search for the past week (the when:7d operator), UK edition."""
+    if not query:
+        return None
+    return "https://news.google.com/search?" + urlencode(
+        {"q": f"{query} when:7d", "hl": "en-GB", "gl": "GB", "ceid": "GB:en"})
+
+
 def fmt_when(moment):
     """'Wed 18 Nov 07:00' for a release time, 'Wed 18 Nov' for a date."""
     if moment is None:
@@ -165,6 +175,22 @@ def history(con, series_id, since):
         SELECT period_date, value FROM latest_observations
         WHERE series_id = ? AND period_date >= ? ORDER BY period_date
     """, [series_id, since]).fetchall()
+
+
+def previous_release_history(con, series_id, since):
+    """The series as it stood at the previous release: for each period, the latest
+    value from a vintage before the most recent one. Empty until a series has
+    been through at least two releases since the pipeline started."""
+    return con.execute("""
+        WITH latest_vintage AS (
+            SELECT max(vintage_date) AS v FROM observations WHERE series_id = ?
+        )
+        SELECT period_date, value
+        FROM observations, latest_vintage
+        WHERE series_id = ? AND period_date >= ? AND vintage_date < latest_vintage.v
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY period_date ORDER BY vintage_date DESC) = 1
+        ORDER BY period_date
+    """, [series_id, series_id, since]).fetchall()
 
 
 # ---------------------------------------------------------------------------
@@ -190,15 +216,23 @@ def change_between(new, old, measure):
     return new - old
 
 
-def sparkline(points):
-    """A small trend line as PNG bytes: the shape matters, not the axis values."""
+SPARK_W, SPARK_H = 200, 50  # pixels
+
+
+def sparkline(points, previous=()):
+    """A small trend line as PNG bytes: the shape matters, not the axis values.
+    previous (the series at the previous release) is drawn first as a red dotted
+    line, so it is hidden under the blue line except where data were revised."""
     if len(points) < 2:
         return None
-    fig, ax = plt.subplots(figsize=(1.6, 0.4), dpi=100)
+    fig, ax = plt.subplots(figsize=(SPARK_W / 100, SPARK_H / 100), dpi=100)
+    if len(previous) >= 2:
+        ax.plot([p[0] for p in previous], [p[1] for p in previous],
+                color=COLOURS["down"], linewidth=1.3, linestyle=(0, (1.5, 1.5)), zorder=1)
     xs = [p[0] for p in points]
     ys = [p[1] for p in points]
-    ax.plot(xs, ys, color=COLOURS["line"], linewidth=1.2)
-    ax.plot(xs[-1], ys[-1], "o", color=COLOURS["line"], markersize=2.5)
+    ax.plot(xs, ys, color=COLOURS["line"], linewidth=1.2, zorder=2)
+    ax.plot(xs[-1], ys[-1], "o", color=COLOURS["line"], markersize=2.5, zorder=3)
     ax.axis("off")
     fig.subplots_adjust(0, 0, 1, 1)
     buf = io.BytesIO()
@@ -228,10 +262,16 @@ def build_report(con, results, run_started, today=None, consensus_captured=(), c
 
     images = {}  # cid key -> png bytes, one sparkline per series, reused across sections
 
+    revised = set()  # series whose previous release differs from the latest in the charted window
+
     def add_spark(sid, freq):
         if sid not in images:
-            since = today - timedelta(days=365 if freq == "D" else 5 * 365)
-            png = sparkline(history(con, sid, since))
+            since = today - timedelta(days=365 if freq == "D" else 3 * 365)
+            latest, previous = history(con, sid, since), previous_release_history(con, sid, since)
+            latest_by_period = dict(latest)
+            if any(abs(latest_by_period[p] - v) > 1e-9 for p, v in previous if p in latest_by_period):
+                revised.add(sid)
+            png = sparkline(latest, previous)
             if not png:
                 return None
             images[sid] = png
@@ -261,7 +301,8 @@ def build_report(con, results, run_started, today=None, consensus_captured=(), c
             yoy=fmt_change(yoy_change(con, sid, period), s["measure"], s["frequency"]),
             released=fmt_when(s["last_release"]), next_release=fmt_when(s["next_release"]),
             consensus=consensus_text, surprise=surprise_text,
-            is_new=sid in new_periods, spark=add_spark(sid, s["frequency"]))
+            page_url=s["page_url"], news_url=news_url(s["news_query"]),
+            is_new=sid in new_periods, spark=add_spark(sid, s["frequency"]), is_revised=sid in revised)
 
     def market_row(sid):
         """Latest position of a daily series, with 1-day and 1-month changes."""
@@ -277,6 +318,7 @@ def build_report(con, results, run_started, today=None, consensus_captured=(), c
             value=_fmt(value, s["units"], "D"),
             change_1d=fmt_change(change_between(value, previous, s["measure"]), s["measure"], "D"),
             change_1m=fmt_change(change_between(value, month_ago, s["measure"]), s["measure"], "D"),
+            page_url=s["page_url"], news_url=news_url(s["news_query"]),
             spark=add_spark(sid, "D"))
 
     daily = [sid for sid, s in info.items() if s["frequency"] == "D"]
@@ -420,7 +462,7 @@ def render_html(report, image_src):
     esc = html.escape
 
     def img(key):
-        return f'<img src="{image_src(key)}" width="160" height="40" alt="">' if key else ""
+        return f'<img src="{image_src(key)}" width="{SPARK_W}" height="{SPARK_H}" alt="">' if key else ""
 
     def h2(text):
         return (f'<h2 style="font-size:15px;margin:24px 0 8px 0;color:{c["text"]};'
@@ -433,34 +475,62 @@ def render_html(report, image_src):
         return (f' <span style="font-size:10px;font-weight:600;color:#fff;background:{c["line"]};'
                 f'border-radius:3px;padding:1px 4px">NEW</span>') if r.get("is_new") else ""
 
+    def revised_badge(r):
+        return (f' <span style="font-size:10px;font-weight:600;color:#fff;background:{c["down"]};'
+                f'border-radius:3px;padding:1px 4px">REVISED</span>') if r.get("is_revised") else ""
+
     def small(text):
         return f'<span style="font-size:12px;color:{c["muted"]}">{text}</span>'
 
+    def name_cell(r):
+        """The series name, linked to its latest ONS release page where there is one."""
+        if r.get("page_url"):
+            return (f'<a href="{esc(r["page_url"])}" style="color:{c["text"]};text-decoration:underline;'
+                    f'text-decoration-color:{c["rule"]}">{esc(r["name"])}</a>')
+        return esc(r["name"])
+
+    def wrap(content):
+        """Table cells do not wrap (numbers stay on one line); names and tags may."""
+        return f'<span style="white-space:normal">{content}</span>'
+
+    def news_button(r):
+        """A button-style link: Google News for the series over the past week."""
+        if not r.get("news_url"):
+            return ""
+        return (f'<a href="{esc(r["news_url"])}" style="display:inline-block;padding:3px 9px;font-size:11px;'
+                f'font-weight:600;color:{c["line"]};border:1px solid {c["line"]};border-radius:4px;'
+                f'text-decoration:none;white-space:nowrap">News</a>')
+
     # New releases: the outturn against consensus, and when it came out
     new_headers = ["Series", "Period", "Latest", "Previous", "Consensus", "Surprise", "vs year ago",
-                   "Last 5 years", "Released"]
-    new_align = ["left", "left", "right", "right", "right", "right", "right", "left", "left"]
+                   "Last 3 years", "Released", ""]
+    new_align = ["left", "left", "right", "right", "right", "right", "right", "left", "left", "right"]
 
     def new_rows(rows):
-        return [[esc(r["name"]), r["period"], f'<b>{r["value"]}</b>', r["previous"], r["consensus"],
+        return [[wrap(name_cell(r) + revised_badge(r)), r["period"], f'<b>{r["value"]}</b>', r["previous"], r["consensus"],
                  f'<b>{esc(r["surprise"])}</b>' if r["surprise"] != "-" else "-", _coloured(r["yoy"]),
-                 img(r["spark"]), small(r["released"])] for r in rows]
+                 img(r["spark"]), small(r["released"]), news_button(r)] for r in rows]
 
     # All UK data: the latest position of every series, with last and next release times
-    all_headers = ["Series", "Period", "Latest", "Previous", "vs year ago", "Last 5 years", "Released",
-                   "Next release"]
-    all_align = ["left", "left", "right", "right", "right", "left", "left", "left"]
-    all_widths = [24, 9, 9, 9, 9, 18, 11, 11]  # same in every section, so the columns line up
+    all_headers = ["Series", "Period", "Latest", "Previous", "vs year ago", "Last 3 years", "Released",
+                   "Next release", ""]
+    all_align = ["left", "left", "right", "right", "right", "left", "left", "left", "right"]
+    all_widths = [20, 7, 8, 8, 8, 23, 11, 11, 4]  # same in every section, so the columns line up
 
     def all_rows(rows):
-        return [[esc(r["name"]) + new_badge(r), r["period"], f'<b>{r["value"]}</b>', r["previous"],
-                 _coloured(r["yoy"]), img(r["spark"]), small(r["released"]), small(r["next_release"])]
+        return [[wrap(name_cell(r) + new_badge(r) + revised_badge(r)), r["period"], f'<b>{r["value"]}</b>', r["previous"],
+                 _coloured(r["yoy"]), img(r["spark"]), small(r["released"]), small(r["next_release"]),
+                 news_button(r)]
                 for r in rows]
 
-    parts = [f'<div style="font-family:Segoe UI,Helvetica,Arial,sans-serif;color:{c["text"]};max-width:960px">',
+    legend = (f'<span style="color:{c["line"]};font-weight:600">blue</span> = latest release, '
+              f'<span style="color:{c["down"]};font-weight:600">red dotted</span> = previous release '
+              f'(visible where data were revised; REVISED tags the series)')
+    parts = [f'<div style="font-family:Segoe UI,Helvetica,Arial,sans-serif;color:{c["text"]};max-width:1040px">',
              f'<h1 style="font-size:20px;margin:0 0 4px 0">UK macro monitor</h1>',
              f'<div style="color:{c["muted"]};font-size:13px">{report["today"]:%A %d %B %Y}. '
-             f'Release times are UK time. Consensus: <a href="{CALENDAR_URL}">Bloomberg economic calendar</a>.</div>']
+             f'Release times are UK time. Consensus: <a href="{CALENDAR_URL}">Bloomberg economic calendar</a>. '
+             f'Series names link to the ONS release page.<br>Trend lines: {legend}.</div>']
 
     # 1. New releases
     parts.append(h2("New releases"))
@@ -495,10 +565,10 @@ def render_html(report, image_src):
     if report["markets"]:
         parts.append(h2("Markets"))
         parts.append(_table(
-            ["Series", "Date", "Latest", "1 day", "1 month", "Last 12 months"],
-            [[esc(r["name"]), r["period"], f'<b>{r["value"]}</b>', _coloured(r["change_1d"]),
-              _coloured(r["change_1m"]), img(r["spark"])] for r in report["markets"]],
-            ["left", "left", "right", "right", "right", "left"]))
+            ["Series", "Date", "Latest", "1 day", "1 month", "Last 12 months", ""],
+            [[name_cell(r), r["period"], f'<b>{r["value"]}</b>', _coloured(r["change_1d"]),
+              _coloured(r["change_1m"]), img(r["spark"]), news_button(r)] for r in report["markets"]],
+            ["left", "left", "right", "right", "right", "left", "right"]))
 
     # 4. Every monthly and quarterly series, by section
     if report["all_data"]:
