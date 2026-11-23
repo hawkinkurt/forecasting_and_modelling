@@ -9,6 +9,8 @@ import argparse
 from datetime import datetime
 
 import export
+from pipeline.calendar import update_release_times
+from pipeline.consensus import process_inbox
 from pipeline.db import connect, ensure_schema
 from pipeline.email_report import build_report, save_preview, send_report
 from pipeline.registry import load_registry, sync_registry
@@ -66,8 +68,20 @@ def main():
         print(f"{series['series_id']:<26} {r['status']:<10} {r['message'] or ''}")
         results.append(r)
 
+    # Exact release times from the ONS release calendar
+    pipeline_problems = update_release_times(con, registry)
+
+    # Consensus figures from any screenshots dropped into consensus_inbox/
+    captured, notes, consensus_problems = process_inbox(con)
+    pipeline_problems += consensus_problems
+    if captured:
+        print(f"\nConsensus captured: {len(captured)} figure(s) from screenshots")
+    for p in pipeline_problems:
+        print(f"Problem: {p}")
+
     print_report(con, results)
-    report = build_report(con, results, run_started)
+    report = build_report(con, results, run_started, consensus_captured=captured,
+                          consensus_notes=notes, extra_problems=pipeline_problems)
     con.close()  # close before exporting, which opens its own read-only connection
 
     print()

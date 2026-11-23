@@ -18,7 +18,7 @@ import base64
 import html
 import io
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from email.message import EmailMessage
 from email.utils import make_msgid
 
@@ -34,6 +34,7 @@ from pipeline.registry import load_registry  # noqa: E402
 from pipeline.report import _fmt, _fmt_period  # noqa: E402
 
 PREVIEW_PATH = ROOT / "exports" / "last_report.html"
+CALENDAR_URL = "https://www.bloomberg.com/markets/economic-calendar"
 
 # How far back a revision is worth reporting. Seasonal adjustment revises
 # whole histories by tiny amounts every release; those are counted, not listed.
@@ -72,11 +73,13 @@ def changes_this_run(con, run_started):
 
 def series_info(con):
     rows = con.execute("""
-        SELECT series_id, COALESCE(short_name, name), section, frequency, units, measure, next_release
+        SELECT series_id, COALESCE(short_name, name), section, frequency, units, measure,
+               COALESCE(next_release_at, next_release), last_release_at, ons_release
         FROM series
     """).fetchall()
-    info = {r[0]: dict(zip(["series_id", "name", "section", "frequency", "units", "measure", "next_release"], r))
-            for r in rows}
+    keys = ["series_id", "name", "section", "frequency", "units", "measure",
+            "next_release", "last_release", "ons_release"]
+    info = {r[0]: dict(zip(keys, r)) for r in rows}
     # Short names carry units for chart legends, e.g. "CPI inflation (%)"; the email shows units on the values
     for s in info.values():
         s["name"] = s["name"].replace(" (%)", "")
@@ -103,6 +106,58 @@ def yoy_change(con, series_id, period):
     row = con.execute("SELECT change_yoy FROM changes WHERE series_id = ? AND period_date = ?",
                       [series_id, period]).fetchone()
     return row[0] if row else None
+
+
+BASIS_LABEL = {"mom": "m/m", "qoq": "q/q", "yoy": "y/y"}
+BASIS_PREFERENCE = ["value", "mom", "qoq", "yoy"]  # which consensus to show when several exist
+
+
+def consensus_for(con, series_id, period, captured_before=None):
+    """The latest consensus captured for one series and period, as (basis, value),
+    preferring the headline basis. captured_before limits it to figures captured
+    before a date (so a surprise compares against the pre-release consensus)."""
+    rows = con.execute("""
+        SELECT basis, value FROM consensus
+        WHERE series_id = ? AND period_date = ? AND (? IS NULL OR as_of <= ?)
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY basis ORDER BY as_of DESC) = 1
+    """, [series_id, period, captured_before, captured_before]).fetchall()
+    rows.sort(key=lambda r: BASIS_PREFERENCE.index(r[0]))
+    return rows[0] if rows else None
+
+
+def actual_on_basis(con, series_id, period, basis):
+    """The published figure on the same basis as a consensus: the value itself,
+    or the period / year-on-year % change from the changes view."""
+    if basis == "value":
+        row = con.execute("SELECT value FROM latest_observations WHERE series_id = ? AND period_date = ?",
+                          [series_id, period]).fetchone()
+    else:
+        column = "change_yoy" if basis == "yoy" else "change_period"
+        row = con.execute(f"SELECT {column} FROM changes WHERE series_id = ? AND period_date = ?",
+                          [series_id, period]).fetchone()
+    return row[0] if row else None
+
+
+def fmt_consensus(value, basis, s):
+    if basis == "value":
+        return _fmt(value, s["units"], s["frequency"])
+    return f"{value:+.1f}% {BASIS_LABEL[basis]}"
+
+
+def fmt_surprise(diff, basis, s):
+    """Actual minus consensus: pp for rates and growth rates, bp for daily rates, units otherwise."""
+    if diff is None:
+        return "-"
+    if basis != "value" or s["units"] == "%":
+        return f"{diff * 100:+.0f}bp" if s["frequency"] == "D" else f"{diff:+.1f}pp"
+    return f"{diff:+,.0f}" if s["units"] in ("£m", "thousands", "number") else f"{diff:+.1f}"
+
+
+def fmt_when(moment):
+    """'Wed 18 Nov 07:00' for a release time, 'Wed 18 Nov' for a date."""
+    if moment is None:
+        return "-"
+    return f"{moment:%a %d %b %H:%M}" if isinstance(moment, datetime) else f"{moment:%a %d %b}"
 
 
 def history(con, series_id, since):
@@ -156,7 +211,8 @@ def sparkline(points):
 # Building the report
 # ---------------------------------------------------------------------------
 
-def build_report(con, results, run_started, today=None):
+def build_report(con, results, run_started, today=None, consensus_captured=(), consensus_notes=(),
+                 extra_problems=()):
     """Collect everything the email needs. Returns a dict of sections and images."""
     today = today or date.today()
     info = series_info(con)
@@ -189,13 +245,23 @@ def build_report(con, results, run_started, today=None):
             return None
         period, value = two[0]
         previous = two[1][1] if len(two) > 1 else None
+        # Consensus captured before the release, compared with the outturn on the same basis
+        released_on = s["last_release"].date() if s["last_release"] else None
+        cons = consensus_for(con, sid, period, captured_before=released_on)
+        consensus_text, surprise_text = "-", "-"
+        if cons:
+            basis, cons_value = cons
+            actual = actual_on_basis(con, sid, period, basis)
+            consensus_text = fmt_consensus(cons_value, basis, s)
+            surprise_text = fmt_surprise(actual - cons_value if actual is not None else None, basis, s)
         return dict(
             sid=sid, name=s["name"], section=s["section"], period=_fmt_period(period, s["frequency"]),
             value=_fmt(value, s["units"], s["frequency"]),
             previous=_fmt(previous, s["units"], s["frequency"]),
             yoy=fmt_change(yoy_change(con, sid, period), s["measure"], s["frequency"]),
-            next_release=s["next_release"], is_new=sid in new_periods,
-            spark=add_spark(sid, s["frequency"]))
+            released=fmt_when(s["last_release"]), next_release=fmt_when(s["next_release"]),
+            consensus=consensus_text, surprise=surprise_text,
+            is_new=sid in new_periods, spark=add_spark(sid, s["frequency"]))
 
     def market_row(sid):
         """Latest position of a daily series, with 1-day and 1-month changes."""
@@ -235,12 +301,45 @@ def build_report(con, results, run_started, today=None):
             else:
                 older_revisions += 1
 
-    coming_up = con.execute("""
-        SELECT next_release, list(name ORDER BY name)
-        FROM series
-        WHERE next_release BETWEEN ? AND ?
-        GROUP BY next_release ORDER BY next_release
-    """, [today, today + timedelta(days=7)]).fetchall()
+    # Coming up: one entry per release in the next 7 days, with any consensus
+    # captured since the series was last published
+    window_end = today + timedelta(days=7)
+    releases_due = {}
+    for sid, s in info.items():
+        when = s["next_release"]
+        if when is None:
+            continue
+        when_date = when.date() if isinstance(when, datetime) else when
+        if not today <= when_date <= window_end:
+            continue
+        release = (s["ons_release"] or s["name"]).split("|")[0]
+        entry = releases_due.setdefault((when, release), [])
+        latest = latest_two(con, sid)
+        latest_period = latest[0][0] if latest else date.min
+        row = con.execute("""
+            SELECT basis, value, period_date FROM consensus
+            WHERE series_id = ? AND (period_date > ? OR as_of > ?)
+            ORDER BY period_date DESC, as_of DESC LIMIT 1
+        """, [sid, latest_period, s["last_release"].date() if s["last_release"] else date.min]).fetchone()
+        if row:
+            entry.append(f'{s["name"]} {fmt_consensus(row[1], row[0], s)} '
+                         f'({_fmt_period(row[2], s["frequency"])})')
+    # Bank Rate and other daily series: consensus for a future date (e.g. an MPC decision)
+    for sid, s in info.items():
+        if s["frequency"] != "D":
+            continue
+        for basis, value, period in con.execute("""
+            SELECT basis, value, period_date FROM consensus
+            WHERE series_id = ? AND period_date BETWEEN ? AND ?
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY period_date ORDER BY as_of DESC) = 1
+        """, [sid, today, window_end]).fetchall():
+            releases_due.setdefault((period, f'{s["name"]} decision'), []).append(
+                f'{s["name"]} {fmt_consensus(value, basis, s)}')
+    coming_up = [dict(when=fmt_when(when), release=release, consensus=items)
+                 for (when, release), items in sorted(releases_due.items(),
+                                                     key=lambda kv: (kv[0][0] if isinstance(kv[0][0], datetime)
+                                                                     else datetime.combine(kv[0][0], datetime.min.time()),
+                                                                     kv[0][1]))]
 
     problems = [dict(name=info.get(r["series_id"], {}).get("name", r["series_id"]),
                      detail=r["message"]) for r in results if r["status"] == "error"]
@@ -261,9 +360,17 @@ def build_report(con, results, run_started, today=None):
     markets.sort(key=sort_key(market_order))
     all_data.sort(key=sort_key(section_order))
 
+    problems += [dict(name="Pipeline", detail=p) for p in extra_problems]
+    captured = [dict(name=info[c["series_id"]]["name"],
+                     period=_fmt_period(c["period_date"], info[c["series_id"]]["frequency"]),
+                     consensus=fmt_consensus(c["value"], c["basis"], info[c["series_id"]]),
+                     event=c["event"], file=c["file"])
+                for c in consensus_captured]
+
     return dict(today=today, releases=releases, markets=markets, all_data=all_data,
                 revisions=revision_lines, older_revisions=older_revisions,
-                coming_up=coming_up, problems=problems, images=images)
+                coming_up=coming_up, captured=captured, notes=list(consensus_notes),
+                problems=problems, images=images)
 
 
 def subject_line(report):
@@ -281,18 +388,22 @@ def subject_line(report):
 # Rendering (HTML for the email, plain text as a fallback)
 # ---------------------------------------------------------------------------
 
-def _table(headers, rows, align):
-    """An HTML table with inline styles, since many email clients ignore <style> blocks."""
+def _table(headers, rows, align, widths=None):
+    """An HTML table with inline styles, since many email clients ignore <style> blocks.
+    widths (percentages) fix the column layout, so separate tables line up."""
     c = COLOURS
+    widths = widths or [None] * len(headers)
     th = "".join(f'<th style="text-align:{a};padding:6px 10px;border-bottom:1px solid {c["rule"]};'
-                 f'background:{c["head"]};font-weight:600;font-size:12px;color:{c["muted"]}">{h}</th>'
-                 for h, a in zip(headers, align))
+                 f'background:{c["head"]};font-weight:600;font-size:12px;color:{c["muted"]}'
+                 f'{f";width:{w}%" if w else ""}">{h}</th>'
+                 for h, a, w in zip(headers, align, widths))
     body = ""
     for row in rows:
         tds = "".join(f'<td style="text-align:{a};padding:6px 10px;border-bottom:1px solid {c["rule"]};'
                       f'font-size:13px;white-space:nowrap">{cell}</td>' for cell, a in zip(row, align))
         body += f"<tr>{tds}</tr>"
-    return (f'<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;'
+    layout = "table-layout:fixed;" if any(widths) else ""
+    return (f'<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;{layout}'
             f'margin:0 0 20px 0">{"<tr>" + th + "</tr>"}{body}</table>')
 
 
@@ -322,33 +433,63 @@ def render_html(report, image_src):
         return (f' <span style="font-size:10px;font-weight:600;color:#fff;background:{c["line"]};'
                 f'border-radius:3px;padding:1px 4px">NEW</span>') if r.get("is_new") else ""
 
-    release_headers = ["Series", "Period", "Latest", "Previous", "vs year ago", "Last 5 years", "Next release"]
-    release_align = ["left", "left", "right", "right", "right", "left", "left"]
+    def small(text):
+        return f'<span style="font-size:12px;color:{c["muted"]}">{text}</span>'
 
-    def release_rows(rows, badge=False):
-        return [[esc(r["name"]) + (new_badge(r) if badge else ""), r["period"], f'<b>{r["value"]}</b>',
-                 r["previous"], _coloured(r["yoy"]), img(r["spark"]),
-                 f'{r["next_release"]:%d %b}' if r["next_release"] else "-"] for r in rows]
+    # New releases: the outturn against consensus, and when it came out
+    new_headers = ["Series", "Period", "Latest", "Previous", "Consensus", "Surprise", "vs year ago",
+                   "Last 5 years", "Released"]
+    new_align = ["left", "left", "right", "right", "right", "right", "right", "left", "left"]
 
-    parts = [f'<div style="font-family:Segoe UI,Helvetica,Arial,sans-serif;color:{c["text"]};max-width:820px">',
+    def new_rows(rows):
+        return [[esc(r["name"]), r["period"], f'<b>{r["value"]}</b>', r["previous"], r["consensus"],
+                 f'<b>{esc(r["surprise"])}</b>' if r["surprise"] != "-" else "-", _coloured(r["yoy"]),
+                 img(r["spark"]), small(r["released"])] for r in rows]
+
+    # All UK data: the latest position of every series, with last and next release times
+    all_headers = ["Series", "Period", "Latest", "Previous", "vs year ago", "Last 5 years", "Released",
+                   "Next release"]
+    all_align = ["left", "left", "right", "right", "right", "left", "left", "left"]
+    all_widths = [24, 9, 9, 9, 9, 18, 11, 11]  # same in every section, so the columns line up
+
+    def all_rows(rows):
+        return [[esc(r["name"]) + new_badge(r), r["period"], f'<b>{r["value"]}</b>', r["previous"],
+                 _coloured(r["yoy"]), img(r["spark"]), small(r["released"]), small(r["next_release"])]
+                for r in rows]
+
+    parts = [f'<div style="font-family:Segoe UI,Helvetica,Arial,sans-serif;color:{c["text"]};max-width:960px">',
              f'<h1 style="font-size:20px;margin:0 0 4px 0">UK macro monitor</h1>',
-             f'<div style="color:{c["muted"]};font-size:13px">{report["today"]:%A %d %B %Y}</div>']
+             f'<div style="color:{c["muted"]};font-size:13px">{report["today"]:%A %d %B %Y}. '
+             f'Release times are UK time. Consensus: <a href="{CALENDAR_URL}">Bloomberg economic calendar</a>.</div>']
 
     # 1. New releases
     parts.append(h2("New releases"))
     if report["releases"]:
-        parts.append(_table(release_headers, release_rows(report["releases"]), release_align))
+        parts.append(_table(new_headers, new_rows(report["releases"]), new_align))
     else:
         parts.append(f'<p style="font-size:13px;color:{c["muted"]}">No new monthly or quarterly releases.</p>')
 
-    # 2. Coming up
+    # 2. Coming up, with any consensus captured for each release
     parts.append(h2("Coming up (next 7 days)"))
     if report["coming_up"]:
-        parts.append(_table(["Date", "Releases"],
-                            [[f"{d:%a %d %b}", esc(", ".join(names))] for d, names in report["coming_up"]],
-                            ["left", "left"]))
+        parts.append(_table(["When", "Release", "Consensus"],
+                            [[f'<b>{esc(r["when"])}</b>', esc(r["release"]),
+                              "<br>".join(esc(x) for x in r["consensus"]) or small("none captured yet")]
+                             for r in report["coming_up"]],
+                            ["left", "left", "left"]))
     else:
         parts.append(f'<p style="font-size:13px;color:{c["muted"]}">No scheduled releases.</p>')
+
+    # What was read from screenshots this run, so misreads are easy to spot
+    if report["captured"] or report["notes"]:
+        parts.append(h2("Consensus captured from screenshots"))
+        if report["captured"]:
+            parts.append(_table(["Series", "Period", "Consensus", "As shown on the calendar", "Screenshot"],
+                                [[esc(x["name"]), x["period"], f'<b>{esc(x["consensus"])}</b>',
+                                  esc(x["event"]), small(esc(x["file"]))] for x in report["captured"]],
+                                ["left", "left", "right", "left", "left"]))
+        for note in report["notes"]:
+            parts.append(f'<p style="font-size:12px;color:{c["muted"]}">Note: {esc(note)}</p>')
 
     # 3. Markets (every daily series)
     if report["markets"]:
@@ -368,9 +509,8 @@ def render_html(report, image_src):
                 sections.append(r["section"])
         for section in sections:
             parts.append(h3(esc(section)))
-            parts.append(_table(release_headers,
-                                release_rows([r for r in report["all_data"] if r["section"] == section], badge=True),
-                                release_align))
+            parts.append(_table(all_headers, all_rows([r for r in report["all_data"] if r["section"] == section]),
+                                all_align, all_widths))
 
     # 5. Revisions and problems
     if report["revisions"] or report["older_revisions"]:
@@ -399,14 +539,21 @@ def render_text(report):
     lines = [f"UK macro monitor, {report['today']:%A %d %B %Y}", ""]
     lines.append("NEW RELEASES")
     for r in report["releases"] or []:
-        lines.append(f"  {r['name']}: {r['value']} in {r['period']} (previous {r['previous']}, vs year ago {r['yoy']})")
+        lines.append(f"  {r['name']}: {r['value']} in {r['period']} (previous {r['previous']}, "
+                     f"consensus {r['consensus']}, surprise {r['surprise']}, vs year ago {r['yoy']}; "
+                     f"released {r['released']})")
     if not report["releases"]:
         lines.append("  None")
-    lines += ["", "COMING UP"]
-    for d, names in report["coming_up"]:
-        lines.append(f"  {d:%a %d %b}: {', '.join(names)}")
+    lines += ["", "COMING UP (UK time)"]
+    for r in report["coming_up"]:
+        cons = "; ".join(r["consensus"]) or "no consensus captured yet"
+        lines.append(f"  {r['when']}: {r['release']} ({cons})")
     if not report["coming_up"]:
         lines.append("  None")
+    if report["captured"]:
+        lines += ["", "CONSENSUS CAPTURED FROM SCREENSHOTS"]
+        for x in report["captured"]:
+            lines.append(f"  {x['name']} {x['period']}: {x['consensus']} (shown as '{x['event']}')")
     if report["markets"]:
         lines += ["", "MARKETS"]
         for r in report["markets"]:
@@ -419,7 +566,8 @@ def render_text(report):
                 section = r["section"]
                 lines.append(f"  {section}")
             tag = " [NEW]" if r["is_new"] else ""
-            lines.append(f"    {r['name']}{tag}: {r['value']} in {r['period']} (previous {r['previous']}, vs year ago {r['yoy']})")
+            lines.append(f"    {r['name']}{tag}: {r['value']} in {r['period']} (previous {r['previous']}, "
+                         f"vs year ago {r['yoy']}; released {r['released']}, next {r['next_release']})")
     if report["revisions"]:
         lines += ["", "REVISIONS"]
         for r in report["revisions"]:

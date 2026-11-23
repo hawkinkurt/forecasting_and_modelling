@@ -26,3 +26,6 @@ powerbi/**/.pbi/cache.abf
 # Gmail API OAuth client and token (secrets)
 config/gmail_credentials.json
 config/gmail_token.json
+
+# Consensus screenshots and processed copies (calendar provider's data, personal use)
+consensus_inbox/

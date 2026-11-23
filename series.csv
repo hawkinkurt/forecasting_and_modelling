@@ -1,28 +1,28 @@
-series_id,source,source_code,dataset,name,short_name,section,area,frequency,units,measure,multiplier
-gdp_qoq,ONS,IHYQ,pn2,"GDP growth, quarter on quarter",GDP growth q/q (%),Activity,UK,Q,%,rate,
-gdp_real,ONS,ABMI,pn2,"Real GDP, chained volume measure",Real GDP (£m),Activity,UK,Q,£m,level,
-gdp_monthly,ONS,ECY2,mgdp,Monthly GDP (GVA) index,Monthly GDP index,Activity,UK,M,index,level,
-services_output,ONS,S2KU,ios1,Index of Services,Services output index,Activity,UK,M,index,level,
-unemployment_rate,ONS,MGSX,lms,"Unemployment rate, 16+ (3 months to)",Unemployment rate (%),Labour market,UK,M,%,rate,
-employment_rate,ONS,LF24,lms,"Employment rate, 16-64 (3 months to)",Employment rate (%),Labour market,UK,M,%,rate,
-vacancies,ONS,AP2Y,lms,Vacancies (3 months to),Vacancies (000s),Labour market,UK,M,thousands,level,
-regular_pay_yoy,ONS,KAI9,lms,"Regular pay growth, whole economy (3m avg, y/y)",Regular pay growth (%),Labour market,UK,M,%,rate,
-private_regular_pay_yoy,ONS,KAJ4,lms,"Regular pay growth, private sector (3m avg, y/y)",Private regular pay growth (%),Labour market,UK,M,%,rate,
-cpi_yoy,ONS,D7G7,mm23,"CPI inflation, y/y",CPI inflation (%),Prices,UK,M,%,rate,
-core_cpi_yoy,ONS,DKO8,mm23,"Core CPI inflation (ex energy, food, alcohol, tobacco), y/y",Core CPI inflation (%),Prices,UK,M,%,rate,
-services_cpi_yoy,ONS,D7NN,mm23,"Services CPI inflation, y/y",Services CPI inflation (%),Prices,UK,M,%,rate,
-goods_cpi_yoy,ONS,D7NM,mm23,"Goods CPI inflation, y/y",Goods CPI inflation (%),Prices,UK,M,%,rate,
-cpih_yoy,ONS,L55O,mm23,"CPIH inflation, y/y",CPIH inflation (%),Prices,UK,M,%,rate,
-retail_sales_volume,ONS,J5EK,drsi,"Retail sales volume, incl fuel",Retail sales volume index,Households,UK,M,index,level,
-psnb,ONS,J5II,pusf,"Public sector net borrowing (ex public sector banks), not seasonally adjusted",Public sector net borrowing (£m),Public finances,UK,M,£m,balance,-1
-trade_balance,ONS,IKBJ,mret,"Trade balance, goods and services",Trade balance (£m),External,UK,M,£m,balance,
-bank_rate,BoE,IUDBEDR,IADB,Bank Rate,Bank Rate (%),Monetary policy and rates,UK,D,%,rate,
-sonia,BoE,IUDSOIA,IADB,SONIA overnight rate,SONIA (%),Monetary policy and rates,UK,D,%,rate,
-gilt_5y,BoE,IUDSNPY,IADB,"Gilt yield, 5-year nominal par",5-year gilt yield (%),Monetary policy and rates,UK,D,%,rate,
-gilt_10y,BoE,IUDMNPY,IADB,"Gilt yield, 10-year nominal par",10-year gilt yield (%),Monetary policy and rates,UK,D,%,rate,
-gilt_20y,BoE,IUDLNPY,IADB,"Gilt yield, 20-year nominal par",20-year gilt yield (%),Monetary policy and rates,UK,D,%,rate,
-mortgage_rate_2y,BoE,IUMBV34,IADB,"Quoted mortgage rate, 2-year fixed (75% LTV)",2-year fixed mortgage rate (%),Monetary policy and rates,UK,M,%,rate,
-mortgage_approvals,BoE,LPMVTVX,IADB,Mortgage approvals for house purchase,Mortgage approvals,Money and credit,UK,M,number,level,
-sterling_eri,BoE,XUDLBK67,IADB,Sterling effective exchange rate index (Jan 2005 = 100),Sterling ERI,External,UK,D,index,level,
-gbp_usd,BoE,XUDLUSS,IADB,Sterling exchange rate against US dollar,GBP/USD,External,UK,D,USD per GBP,level,
-gbp_eur,BoE,XUDLERS,IADB,Sterling exchange rate against euro,GBP/EUR,External,UK,D,EUR per GBP,level,
+series_id,source,source_code,dataset,name,short_name,section,area,frequency,units,measure,multiplier,ons_release
+gdp_qoq,ONS,IHYQ,pn2,"GDP growth, quarter on quarter",GDP growth q/q (%),Activity,UK,Q,%,rate,,"GDP first quarterly estimate, UK|GDP quarterly national accounts, UK"
+gdp_real,ONS,ABMI,pn2,"Real GDP, chained volume measure",Real GDP (£m),Activity,UK,Q,£m,level,,"GDP first quarterly estimate, UK|GDP quarterly national accounts, UK"
+gdp_monthly,ONS,ECY2,mgdp,Monthly GDP (GVA) index,Monthly GDP index,Activity,UK,M,index,level,,"GDP monthly estimate, UK"
+services_output,ONS,S2KU,ios1,Index of Services,Services output index,Activity,UK,M,index,level,,"GDP monthly estimate, UK"
+unemployment_rate,ONS,MGSX,lms,"Unemployment rate, 16+ (3 months to)",Unemployment rate (%),Labour market,UK,M,%,rate,,UK Labour Market
+employment_rate,ONS,LF24,lms,"Employment rate, 16-64 (3 months to)",Employment rate (%),Labour market,UK,M,%,rate,,UK Labour Market
+vacancies,ONS,AP2Y,lms,Vacancies (3 months to),Vacancies (000s),Labour market,UK,M,thousands,level,,UK Labour Market
+regular_pay_yoy,ONS,KAI9,lms,"Regular pay growth, whole economy (3m avg, y/y)",Regular pay growth (%),Labour market,UK,M,%,rate,,UK Labour Market
+private_regular_pay_yoy,ONS,KAJ4,lms,"Regular pay growth, private sector (3m avg, y/y)",Private regular pay growth (%),Labour market,UK,M,%,rate,,UK Labour Market
+cpi_yoy,ONS,D7G7,mm23,"CPI inflation, y/y",CPI inflation (%),Prices,UK,M,%,rate,,"Consumer price inflation, UK"
+core_cpi_yoy,ONS,DKO8,mm23,"Core CPI inflation (ex energy, food, alcohol, tobacco), y/y",Core CPI inflation (%),Prices,UK,M,%,rate,,"Consumer price inflation, UK"
+services_cpi_yoy,ONS,D7NN,mm23,"Services CPI inflation, y/y",Services CPI inflation (%),Prices,UK,M,%,rate,,"Consumer price inflation, UK"
+goods_cpi_yoy,ONS,D7NM,mm23,"Goods CPI inflation, y/y",Goods CPI inflation (%),Prices,UK,M,%,rate,,"Consumer price inflation, UK"
+cpih_yoy,ONS,L55O,mm23,"CPIH inflation, y/y",CPIH inflation (%),Prices,UK,M,%,rate,,"Consumer price inflation, UK"
+retail_sales_volume,ONS,J5EK,drsi,"Retail sales volume, incl fuel",Retail sales volume index,Households,UK,M,index,level,,"Retail sales, Great Britain"
+psnb,ONS,J5II,pusf,"Public sector net borrowing (ex public sector banks), not seasonally adjusted",Public sector net borrowing (£m),Public finances,UK,M,£m,balance,-1,"Public sector finances, UK"
+trade_balance,ONS,IKBJ,mret,"Trade balance, goods and services",Trade balance (£m),External,UK,M,£m,balance,,UK trade
+bank_rate,BoE,IUDBEDR,IADB,Bank Rate,Bank Rate (%),Monetary policy and rates,UK,D,%,rate,,
+sonia,BoE,IUDSOIA,IADB,SONIA overnight rate,SONIA (%),Monetary policy and rates,UK,D,%,rate,,
+gilt_5y,BoE,IUDSNPY,IADB,"Gilt yield, 5-year nominal par",5-year gilt yield (%),Monetary policy and rates,UK,D,%,rate,,
+gilt_10y,BoE,IUDMNPY,IADB,"Gilt yield, 10-year nominal par",10-year gilt yield (%),Monetary policy and rates,UK,D,%,rate,,
+gilt_20y,BoE,IUDLNPY,IADB,"Gilt yield, 20-year nominal par",20-year gilt yield (%),Monetary policy and rates,UK,D,%,rate,,
+mortgage_rate_2y,BoE,IUMBV34,IADB,"Quoted mortgage rate, 2-year fixed (75% LTV)",2-year fixed mortgage rate (%),Monetary policy and rates,UK,M,%,rate,,
+mortgage_approvals,BoE,LPMVTVX,IADB,Mortgage approvals for house purchase,Mortgage approvals,Money and credit,UK,M,number,level,,
+sterling_eri,BoE,XUDLBK67,IADB,Sterling effective exchange rate index (Jan 2005 = 100),Sterling ERI,External,UK,D,index,level,,
+gbp_usd,BoE,XUDLUSS,IADB,Sterling exchange rate against US dollar,GBP/USD,External,UK,D,USD per GBP,level,,
+gbp_eur,BoE,XUDLERS,IADB,Sterling exchange rate against euro,GBP/EUR,External,UK,D,EUR per GBP,level,,

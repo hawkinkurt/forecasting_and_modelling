@@ -39,6 +39,9 @@ def load_registry(path=REGISTRY_PATH):
         if row["measure"] not in MEASURES:
             problems.append(f"line {line_no}: measure must be one of {sorted(MEASURES)}")
 
+        # Optional: the ONS release(s) that publish the series, "|"-separated
+        row["ons_release"] = (row.get("ons_release") or "").strip()
+
         # Optional: multiply source values, e.g. -1 to flip a sign convention.
         try:
             row["multiplier"] = float(row.get("multiplier") or 1)
@@ -61,9 +64,10 @@ def sync_registry(con, rows):
     for r in rows:
         con.execute("""
             INSERT INTO series (series_id, source, source_code, dataset, name, short_name,
-                                section, area, frequency, units, measure)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                section, area, frequency, units, measure, ons_release)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (series_id) DO UPDATE SET
+                ons_release = excluded.ons_release,
                 source = excluded.source,
                 source_code = excluded.source_code,
                 dataset = excluded.dataset,
@@ -74,4 +78,4 @@ def sync_registry(con, rows):
                 frequency = excluded.frequency,
                 units = excluded.units,
                 measure = excluded.measure
-        """, [r[c] for c in COLUMNS])
+        """, [r[c] for c in COLUMNS] + [r["ons_release"] or None])

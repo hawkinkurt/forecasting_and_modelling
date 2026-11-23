@@ -16,6 +16,26 @@ CREATE TABLE IF NOT EXISTS series (
 ALTER TABLE series ADD COLUMN IF NOT EXISTS section VARCHAR;
 ALTER TABLE series ADD COLUMN IF NOT EXISTS measure VARCHAR;  -- 'rate', 'level' or 'balance'
 ALTER TABLE series ADD COLUMN IF NOT EXISTS short_name VARCHAR;  -- for charts, legends and the email
+-- ONS release calendar: which release(s) publish the series, and when (London time)
+ALTER TABLE series ADD COLUMN IF NOT EXISTS ons_release VARCHAR;
+ALTER TABLE series ADD COLUMN IF NOT EXISTS last_release_at TIMESTAMP;
+ALTER TABLE series ADD COLUMN IF NOT EXISTS next_release_at TIMESTAMP;
+
+-- Market consensus for upcoming releases, read from screenshots of an economic
+-- calendar. basis says what the figure measures: the published value itself,
+-- or a growth rate (m/m, q/q, y/y) of a level series.
+CREATE TABLE IF NOT EXISTS consensus (
+    series_id VARCHAR NOT NULL,
+    period_date DATE NOT NULL,
+    basis VARCHAR NOT NULL,          -- 'value', 'mom', 'qoq' or 'yoy'
+    value DOUBLE NOT NULL,
+    as_of DATE NOT NULL,             -- when the consensus was captured
+    source VARCHAR NOT NULL,
+    event_as_shown VARCHAR,          -- the event name as it appeared on the calendar
+    source_file VARCHAR,
+    extracted_at TIMESTAMP,
+    PRIMARY KEY (series_id, period_date, basis, as_of)
+);
 
 CREATE TABLE IF NOT EXISTS observations (
     series_id VARCHAR NOT NULL,
