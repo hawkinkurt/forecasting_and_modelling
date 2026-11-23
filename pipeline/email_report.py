@@ -11,14 +11,13 @@ What is new or revised is worked out by comparing the rows written this run
 (fetched_at >= run start) with the previous vintage of the same period, so the
 email comes straight from the vintage-aware store.
 
-Sending uses Gmail's SMTP server with an app password from .env. Every run also
-saves an HTML preview to exports/last_report.html.
+Sending uses the Gmail API (see pipeline/gmail.py), with the sender and recipient
+from .env. Every run also saves an HTML preview to exports/last_report.html.
 """
 import base64
 import html
 import io
 import os
-import smtplib
 from datetime import date, timedelta
 from email.message import EmailMessage
 from email.utils import make_msgid
@@ -29,6 +28,7 @@ matplotlib.use("Agg")  # draw to images without opening windows
 import matplotlib.pyplot as plt  # noqa: E402
 from dotenv import load_dotenv  # noqa: E402
 
+from pipeline import gmail  # noqa: E402
 from pipeline.db import ROOT  # noqa: E402
 from pipeline.registry import load_registry  # noqa: E402
 from pipeline.report import _fmt, _fmt_period  # noqa: E402
@@ -409,20 +409,17 @@ def build_message(report, sender, recipient):
 
 
 def send_report(report):
-    """Send via Gmail. Returns a short status message; never raises, so a mail
-    problem cannot break the data run."""
+    """Send via the Gmail API. Returns a short status message; never raises, so a
+    mail problem cannot break the data run."""
     load_dotenv(ROOT / ".env")
     sender = os.getenv("GMAIL_ADDRESS")
-    password = os.getenv("GMAIL_APP_PASSWORD")
     recipient = os.getenv("REPORT_TO") or sender
-    if not (sender and password):
-        return "Email not sent: GMAIL_ADDRESS and GMAIL_APP_PASSWORD are not set in .env"
+    if not sender:
+        return "Email not sent: GMAIL_ADDRESS is not set in .env"
     try:
-        msg = build_message(report, sender, recipient)
-        # Port 465 uses SSL from the start, so the password is never sent unencrypted
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as smtp:
-            smtp.login(sender, password.replace(" ", ""))
-            smtp.send_message(msg)
+        gmail.send(build_message(report, sender, recipient))
         return f"Email sent to {recipient}"
+    except gmail.GmailNotAuthorised as e:
+        return f"Email not sent: {e}"
     except Exception as e:
         return f"Email not sent: {type(e).__name__}: {e}"

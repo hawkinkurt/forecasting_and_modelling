@@ -22,3 +22,7 @@ CLAUDE.local.md
 # Power BI project: local cache and machine-specific settings
 powerbi/**/.pbi/localSettings.json
 powerbi/**/.pbi/cache.abf
+
+# Gmail API OAuth client and token (secrets)
+config/gmail_credentials.json
+config/gmail_token.json

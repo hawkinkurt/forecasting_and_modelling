@@ -56,6 +56,17 @@ python -m venv .venv
 .\.venv\Scripts\python run.py
 ```
 
-To receive the email report, copy `.env.example` to `.env` and fill in a Gmail address and a Gmail app password. Without them the run still works and saves the report to `exports/last_report.html`. Use `run.py --no-email` to skip sending.
+Without email set up, the run still works and saves the report to `exports/last_report.html`. Use `run.py --no-email` to skip sending.
+
+## Email report
+
+The report is sent through the Gmail API over HTTPS, with send-only permission (`gmail.send`): the script cannot read the mailbox. One-off setup:
+
+1. Copy `.env.example` to `.env` and fill in the sender and recipient addresses.
+2. In Google Cloud, create a project, enable the Gmail API, configure the OAuth consent screen (External, your address as a test user) and create a **Desktop app** OAuth client.
+3. Download the client JSON to `config/gmail_credentials.json`.
+4. Run `.\.venv\Scripts\python -m pipeline.gmail` and approve access in the browser. This saves `config/gmail_token.json`.
+
+Both files in `config/` are gitignored. Daily runs refresh the token automatically and never open a browser.
 
 The database (`data/`) and exports (`exports/`) are rebuilt by the pipeline and are not stored in the repository.
