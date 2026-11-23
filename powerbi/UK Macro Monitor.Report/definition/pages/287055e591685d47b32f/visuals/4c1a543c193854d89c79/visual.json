@@ -46,6 +46,20 @@
               },
               "queryRef": "Observations.Trade balance (£m)",
               "nativeQueryRef": "Trade balance (£m)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Observations"
+                    }
+                  },
+                  "Property": "Goods trade balance (£m)"
+                }
+              },
+              "queryRef": "Observations.Goods trade balance (£m)",
+              "nativeQueryRef": "Goods trade balance (£m)"
             }
           ]
         }
@@ -66,7 +80,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Trade balance, goods and services (£m)'"
+                  "Value": "'Trade balance: total and goods only (£m)'"
                 }
               }
             }

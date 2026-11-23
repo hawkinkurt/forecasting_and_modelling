@@ -229,6 +229,14 @@ table Observations
 		formatString: 0.0000
 		displayFolder: Latest values\External
 		lineageTag: 00a92ad5-3671-549d-b6aa-105b02c2cb86
+	measure 'Goods trade balance (£m)' = CALCULATE ( [Series Value], Series[series_id] = "trade_balance_goods" )
+		formatString: #,0
+		displayFolder: External
+		lineageTag: 1bec3ada-c4fd-5f27-a4e2-90adb46c198d
+	measure 'Latest: Goods trade balance (£m)' = CALCULATE ( [Latest Value], Series[series_id] = "trade_balance_goods" )
+		formatString: #,0
+		displayFolder: Latest values\External
+		lineageTag: dc2f50a9-4c6b-56fd-9b2d-0861d435b165
 	/// The Bank of England's 2% CPI target, shown only where CPI data exist.
 	measure 'Inflation target (%)' = IF ( NOT ISBLANK ( [CPI inflation (%)] ), 2 )
 		formatString: 0.0

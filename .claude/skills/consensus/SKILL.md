@@ -67,11 +67,12 @@ Open each image (Read tool for files) and extract only UK events that match a se
   GDP (MoM) / Monthly GDP (MoM) -> `gdp_monthly` (mom); GDP (YoY) (monthly, e.g. "(Oct)") -> `gdp_monthly` (yoy);
   Retail Sales (MoM) / (YoY) -> `retail_sales_volume` (mom / yoy) when it is the headline including fuel;
   Mortgage Approvals -> `mortgage_approvals` (value, number);
+  Trade Balance (GBP, e.g. "-22.29B") -> `trade_balance_goods` (value, GBP millions: -22290). On this
+  calendar it is the goods (visible) balance; its Prev matches ONS series BOKI;
   Public Sector Net Borrowing (ex banks) -> `psnb`; Bank of England Bank Rate / Interest Rate Decision -> `bank_rate`.
 - Do **not** map:
-  - "Trade Balance" / "Trade Balance Non-EU": on this calendar these are the goods (visible) balance in
-    GBP billions, not our total goods and services `trade_balance`. Only map an explicitly total
-    goods-and-services balance.
+  - "Trade Balance" to `trade_balance`: that series is the total goods and services balance; the
+    calendar's figure is goods only (use `trade_balance_goods`). "Trade Balance Non-EU": not held.
   - "Monthly GDP 3M/3M Change": a 3-month-on-3-month rate that is not annualised, unlike our measure.
   - Index of Services 3M/3M, PMIs, CBI surveys, house price indices, construction and production: not
     series we hold.

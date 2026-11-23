@@ -26,3 +26,4 @@ mortgage_approvals,BoE,LPMVTVX,IADB,Mortgage approvals for house purchase,Mortga
 sterling_eri,BoE,XUDLBK67,IADB,Sterling effective exchange rate index (Jan 2005 = 100),Sterling ERI,External,UK,D,index,level,,
 gbp_usd,BoE,XUDLUSS,IADB,Sterling exchange rate against US dollar,GBP/USD,External,UK,D,USD per GBP,level,,
 gbp_eur,BoE,XUDLERS,IADB,Sterling exchange rate against euro,GBP/EUR,External,UK,D,EUR per GBP,level,,
+trade_balance_goods,ONS,BOKI,mret,"Trade balance, goods only",Goods trade balance (£m),External,UK,M,£m,balance,,UK trade
