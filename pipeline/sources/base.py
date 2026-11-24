@@ -4,7 +4,7 @@ from datetime import date
 
 # Identify ourselves honestly to data providers. Some (e.g. the Bank of England)
 # block anonymous scripted requests but accept a named client.
-USER_AGENT = "forecasting-and-modelling/0.1 (personal research)"
+USER_AGENT = "uk-monitoring/0.1 (personal research)"
 
 
 @dataclass

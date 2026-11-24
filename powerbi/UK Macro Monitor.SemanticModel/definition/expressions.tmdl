@@ -1,4 +1,4 @@
-expression ExportFolder = "C:\Users\kurtl\PycharmProjects\Forecasting and Modelling\exports\" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+expression ExportFolder = "C:\Users\kurtl\PycharmProjects\uk_monitoring\exports\" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
 	lineageTag: a545fa01-db26-5219-b115-488fa258b461
 
 	annotation PBI_ResultType = Text

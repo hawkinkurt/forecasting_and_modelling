@@ -1,4 +1,4 @@
-# Forecasting and Modelling
+# UK macro monitor
 
 Monitoring tools and forecasting models for the UK and US economies.
 

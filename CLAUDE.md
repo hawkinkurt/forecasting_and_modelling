@@ -1,21 +1,12 @@
-# Forecasting and Modelling
+# UK macro monitor
 
-Monitoring tools, forecasting models and chart packs on the UK and US economies (plus other areas over time). Personal context about the author lives in `CLAUDE.local.md`, which is gitignored.
-
-## How we work
-
-- **Claude writes essentially all of the code.** The author directs the economics, decides what to build and reviews results.
-- **Claude does no writing in the author's voice.** Substack notes, commentary and other prose are the author's own. Don't draft them, even when asked for charts or analysis to go with a note. Technical docs (READMEs, docstrings, commit messages) are fine.
-- **Explain as you go**, briefly. When introducing a new method, library, SQL technique or finance concept, say in a sentence or two what it is and why it fits. Prefer clear, readable code that could be followed and defended in an interview over clever code. Lean on SQL in DuckDB for data work where it is natural.
+Monitoring tools, forecasting models and chart packs on the UK and US economies (plus other areas over time). General working preferences, environment and personal context live in the author's global `~/.claude/CLAUDE.md`, outside this repo; this file covers this project only.
 
 ## Environment
 
-- Windows 11, PyCharm, Python 3.12 in `.venv`. Run scripts with `.\.venv\Scripts\python.exe`. Shell commands should work in PowerShell.
-- Keep `requirements.txt` pinned and updated when adding packages.
+- Data work leans on SQL in DuckDB where it is natural.
 - Database: DuckDB at `data/uk_monitor.duckdb` (gitignored, along with `exports/`).
 - Power BI Desktop for dashboards. Power BI does not read DuckDB, so `export.py` writes Parquet files to `exports/` and Power BI reads those. After an ingest: run `export.py`, then Refresh in Power BI.
-- API keys go in `.env` (gitignored), never in code.
-- Public GitHub repository used as a portfolio piece. Commits, READMEs and code should look professional. Never commit personal details, data files or secrets.
 
 ## Current state of the code
 
